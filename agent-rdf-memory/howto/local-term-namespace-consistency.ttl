@@ -1,0 +1,35 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+: a schema:CreativeWork ;
+    schema:about :localTermNamespaceConsistency .
+
+:localTermNamespaceConsistency a schema:HowTo ;
+    schema:name "Local ontology terms must be USED under their own namespace, not schema.org, at every call site"@en ;
+    schema:description "A property or class correctly minted in a document's local ontology namespace (: prefix) is a gate violation the moment it is invoked anywhere with the schema: prefix instead — this fabricates a nonexistent schema.org term even though the local declaration itself was correct."@en ;
+    schema:dateCreated "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    schema:step :step1, :step2, :step3 .
+
+:step1 a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "How the violation happens"@en ;
+    schema:text """Caught 2026-07-30 on ontologies-agentic-systems-latent-space-mesh-claude_sonnet_5-1.ttl: `:meshesWith` was correctly declared as `a rdf:Property` under the document's own local namespace (`: <https://www.latent.space/p/ontologies-agentic-systems#>`), with a proper `rdfs:domain`/`rdfs:range`/`rdfs:comment` and `rdfs:isDefinedBy :`. But the actual usage — the one place the property was asserted on `:article` — was written as `schema:meshesWith` instead of `:meshesWith`. This fabricates a nonexistent `http://schema.org/meshesWith` term at the point of use, even though the declaration itself, three lines up, was fully correct. The bug is a namespace-prefix slip at the call site, not a missing declaration — grepping only for 'is this term declared somewhere' would have missed it entirely, since it WAS declared, just under the wrong prefix when invoked."""@en .
+
+:step2 a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "BLOCKING CHECK — cross-reference every locally-declared term's declaration prefix against its usage prefix"@en ;
+    schema:text """Before delivering any generated TTL that mints its own lightweight ontology (custom classes/properties under the document's `: <...#>` namespace):
+
+1. Extract every local term name declared with `a rdf:Property`, `a rdfs:Class`, `a owl:Class`, or similar, under the bare `:` prefix — e.g. `grep -oE '^:[A-Za-z]+ a (rdf:Property|rdfs:Class|owl:Class)' file.ttl`.
+2. For each such term name (e.g. `meshesWith`), grep the WHOLE file for `schema:{termName}`, `dbr:{termName}`, or any other foreign-vocabulary prefix immediately followed by that exact identifier — e.g. `grep -n 'schema:meshesWith\\|dbr:meshesWith' file.ttl`. Any hit is a violation: the term was declared locally but invoked under a namespace that does not own it.
+3. Fix by replacing the foreign-prefixed usage with the bare local form (`:meshesWith`), never the reverse — the local declaration is the source of truth since it is what makes the term legitimate in the first place.
+
+This check is orthogonal to, and does not replace, the existing ontology cross-reference gate (reuse-via-bound-prefix for genuinely EXISTING canonical terms, Step 153) — that gate governs whether to mint a new term at all; this gate governs whether an already-correctly-minted term is invoked under its own namespace everywhere it appears."""@en .
+
+:step3 a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Applies to every foreign vocabulary, not just schema.org"@en ;
+    schema:text """The same slip can happen against any prefix in scope — a locally-minted class invoked as `dbr:{LocalClassName}`, `owl:{LocalPropertyName}`, or any other declared prefix that happens to be in the same file. The check in Step 2 must be run against every non-local prefix declared in the file's `@prefix` block, not schema: alone, since the failure mode (correct declaration, wrong-prefix invocation) is prefix-agnostic."""@en .

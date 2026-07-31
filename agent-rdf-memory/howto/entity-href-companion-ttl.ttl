@@ -9,8 +9,8 @@
     schema:name "Entity Href Sourcing from Companion TTL"@en ;
     schema:description "All entity hyperlinks in generated HTML infographics must be resolver-wrapped IRIs sourced from the companion TTL published at its DAV path — never external Wikipedia, W3C, schema.org, or GitHub IRIs for entities defined in the companion TTL."@en ;
     schema:dateCreated "2026-06-14T00:00:00Z"^^xsd:dateTime ;
-    schema:dateModified "2026-07-02T05:20:00Z"^^xsd:dateTime ;
-    schema:step :step1, :step2, :step3, :step4, :step5 .
+    schema:dateModified "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    schema:step :step1, :step2, :step3, :step4, :step5, :step6, :step7 .
 
 :step1 a schema:HowToStep ;
     schema:position 1 ;
@@ -83,3 +83,21 @@ Confirm zero stale external entity hrefs remain where companion TTL IRIs should 
   grep -c 'href="https://www.w3.org/' file.html         # expect 0 for entities in companion TTL
 
 If counts are wrong, re-read the companion TTL and repeat Steps 2–3."""@en .
+
+:step6 a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "First plain-text occurrence of every named Person/Organization must be resolver-linked — not just some later occurrence"@en ;
+    schema:text """Caught 2026-07-30 on ontologies-agentic-systems-latent-space-mesh-claude_sonnet_5-1.html: Frank Coyle, Emil Eifrem, Kingsley Idehen, and Prasenjit Sarkar were all resolver-linked correctly in their quote-card (Voices section) — but their EARLIER, first-in-document mentions in the hero paragraph and the intro paragraph were left as plain unlinked text. Neo4j, OpenLink Software, and UC Berkeley had the same defect: named in body prose but never linked anywhere.
+
+RULE: when a person or organization already has an entity IRI in the companion TTL, its FIRST occurrence in reading order (hero > intro > body, before KG Explorer) must be the resolver-linked one, not a later occurrence. A later duplicate link does not fix an earlier unlinked mention — a reader encountering the name for the first time gets no link.
+
+BLOCKING CHECK before delivery: for every named schema:Person / schema:Organization in the companion TTL, grep the HTML body (excluding <script> blocks) for that entity's literal name text, take the FIRST match, and confirm it is inside an <a href="https://linkeddata.uriburner.com/describe/?url=..."> anchor. If the first match is plain text, fix that occurrence — do not just confirm a link exists somewhere later in the document."""@en .
+
+:step7 a schema:HowToStep ;
+    schema:position 7 ;
+    schema:name "RDF/HTML entity parity — every entity minted in the companion TTL must appear at least once in the HTML body or KG Explorer data, or be flagged"@en ;
+    schema:text """Caught 2026-07-30 on the same document: an X-post commenter ('lux') and an organization ('Oxford Semantic Technologies') were both minted as full entities in the companion TTL — with schema:name, rdfs:seeAlso/schema:url, and RDF-level links to other entities — but neither appeared ANYWHERE in the generated HTML: not in visible body prose, not in kgData for the KG Explorer. The RDF and HTML companions had silently diverged.
+
+RULE: before delivery, enumerate every schema:Person, schema:Organization, and schema:DefinedTerm subject in the companion TTL and confirm each has at least one of: (a) a body-prose mention with a resolver link (per step6), or (b) a kgData node in the KG Explorer JS. An entity that exists only in the TTL is an orphaned entity from the reader's perspective — it was worth modeling in RDF but the HTML silently dropped it. Fix by adding a real body mention (not a token placeholder) — do not delete the RDF entity to make the counts match, since the entity is genuinely part of the source material.
+
+BLOCKING CHECK: grep companion TTL for `a schema:Person`, `a schema:Organization`, `a schema:DefinedTerm` subject IRIs; for each, grep the HTML file (body + kgData) for the IRI or a plausible label match. Zero-hit entities must be added to the HTML before delivery."""@en .

@@ -1,0 +1,76 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a schema:HowTo ;
+    schema:name "Subsumption Plausibility Verification and Abduction"@en ;
+    schema:description "Adapted from NeurOWL (arXiv:2607.15776), a neuro-symbolic method that verifies candidate subsumption axioms and abduces plausible missing ones by combining formal OWL semantics with LLM-based textual semantics. This howto applies the same two-signal pattern — structural fit against the local ontology plus a textual plausibility judgment — to both rdfs:subClassOf and rdfs:subPropertyOf placements made during ontology generation, and adds an abduction pass that flags terms left at a maximally generic superclass/superproperty when a tighter local or external candidate exists."@en ;
+    schema:dateCreated "2026-07-31T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-07-31T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:step :step-structuralFit, :step-textualPlausibility, :step-abductionPass ;
+    schema:workExample :workExample-abductionClass, :workExample-abductionProperty ;
+    rdfs:seeAlso <../preferences.ttl#step-subsumptionPlausibilityAbduction>,
+        <ontology-cross-reference-gate.ttl>,
+        <ontology-discovery.ttl> .
+
+# ── Step 1: Structural Fit ───────────────────────────────────────────────────
+
+:step-structuralFit a schema:HowToStep ;
+    schema:position "1"^^xsd:integer ;
+    schema:name "Check the proposed subsumption against the local class/property hierarchy before accepting it"@en ;
+    schema:text """For every rdfs:subClassOf or rdfs:subPropertyOf assertion made during ontology generation, check it structurally against what already exists in this document's own ontology and in entities/ontology-terms.ttl:
+(a) Is there a class/property already declared in the local hierarchy that is a tighter fit than the one chosen?
+(b) For properties, are the new property's domain/range subtypes of (or equal to) the candidate superproperty's domain/range?
+(c) Does the placement create a cycle or contradict an existing disjointness/domain-range constraint?
+
+A default of schema:Thing (for classes) or no rdfs:subPropertyOf at all (for properties) is not itself wrong, but it MUST be a checked outcome — verified against the local hierarchy — not an unexamined default."""@en .
+
+# ── Step 2: Textual Plausibility ─────────────────────────────────────────────
+
+:step-textualPlausibility a schema:HowToStep ;
+    schema:position "2"^^xsd:integer ;
+    schema:name "Judge subsumption plausibility from the rdfs:comment definitions, not just label similarity"@en ;
+    schema:text """Structural fit alone can pass a superficially similar but semantically wrong placement (e.g., a name-based match). Cross-check by reading the rdfs:comment of the candidate class/property and the rdfs:comment of the proposed superclass/superproperty side by side, and ask: does every instance of the subclass/subproperty genuinely satisfy the superclass/superproperty's definition? If the answer is not a clear yes, do not assert the subsumption — either narrow to a better-fitting candidate or leave it undeclared and record why in rdfs:comment."""@en .
+
+# ── Step 3: Abduction Pass ───────────────────────────────────────────────────
+
+:step-abductionPass a schema:HowToStep ;
+    schema:position "3"^^xsd:integer ;
+    schema:name "Re-scan terms left at a maximally generic placement for a plausible missing axiom, and propose it with a one-line rationale"@en ;
+    schema:text """After the main generation pass, re-scan the produced ontology for:
+(a) Classes whose only rdfs:subClassOf is schema:Thing (or another maximally generic class) while a tighter local class already exists in the same document.
+(b) Properties with no rdfs:subPropertyOf at all, per the "record the absence" requirement in ontology-cross-reference-gate.ttl step-subpropertyReasoning, where a plausible local or schema.org superproperty exists.
+
+For each flagged term, propose the missing axiom plus a one-sentence rationale (mirroring NeurOWL's explanation-bearing abduction output) and apply steps 1–2 above to the proposal before asserting it. This is a completeness pass, not a replacement for the upfront checks in steps 1–2 — it exists because a term can pass individual review and still end up under-specified relative to the finished ontology as a whole."""@en ;
+    rdfs:seeAlso <ontology-cross-reference-gate.ttl#step-subpropertyReasoning> .
+
+# ── Worked Examples ───────────────────────────────────────────────────────────
+
+:workExample-abductionClass a schema:CreativeWork ;
+    schema:name "Class abduction: tightening a schema:Thing default"@en ;
+    schema:text """Before abduction pass:
+:PricingTier a rdfs:Class ;
+    rdfs:label "Pricing Tier"@en ;
+    rdfs:comment "A named pricing level within a product's offer structure."@en ;
+    rdfs:subClassOf schema:Thing .
+
+Abduction flag: this document already defines :ProductOffer as rdfs:subClassOf schema:Offer, and every :PricingTier instance is in fact a kind of :ProductOffer (it has a price and applies to a product). Proposed missing axiom, with rationale:
+
+:PricingTier rdfs:subClassOf :ProductOffer .
+# Rationale: every PricingTier instance in this graph carries schema:price and schema:itemOffered, satisfying ProductOffer's definition — schema:Thing was an unexamined default, not a considered placement."""@en .
+
+:workExample-abductionProperty a schema:CreativeWork ;
+    schema:name "Property abduction: filling a recorded-absent superproperty"@en ;
+    schema:text """Before abduction pass (per ontology-cross-reference-gate.ttl step-subpropertyReasoning, the absence was recorded, not silently omitted):
+:hasTierName a rdf:Property ;
+    rdfs:label "has tier name"@en ;
+    rdfs:comment "The display name of a pricing tier. No superproperty found at generation time."@en ;
+    rdfs:domain :PricingTier ;
+    rdfs:range xsd:string .
+
+Abduction flag: schema:name is a general-purpose superproperty with domain schema:Thing and range xsd:string — compatible with :PricingTier (now a subclass of :ProductOffer, itself a schema:Thing) and xsd:string. Proposed missing axiom:
+
+:hasTierName rdfs:subPropertyOf schema:name .
+# Rationale: hasTierName's domain/range are subtypes of/equal to schema:name's domain/range, and every value is in fact a display name — the earlier "none found" was a shallow local-only search that missed the schema.org candidate."""@en .

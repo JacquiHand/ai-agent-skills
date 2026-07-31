@@ -1,0 +1,7 @@
+interface:
+  display_name: "Website From WebDAV"
+  short_description: "Publish a generated static site to a Virtuoso WebDAV root."
+  brand_color: "#0B5C73"
+  default_prompt: "Use $website-from-webdav to publish the generated OpenLink site to a Virtuoso WebDAV root and map a live route to it."
+policy:
+  allow_implicit_invocation: true

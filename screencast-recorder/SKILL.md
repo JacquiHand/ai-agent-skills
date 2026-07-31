@@ -1,6 +1,6 @@
 ---
 name: "screencast-recorder"
-description: "Record screencast videos of web application interactions using shot-scraper video. Use when the user says: record a screencast, record a video demo, make a walkthrough of, record this session, record what you just did, add voice-over narration, or mix narration into a screencast. Handles mTLS-authenticated endpoints (linkeddata.uriburner.com:5443), local dev server demos, after-the-fact recording from curl session history, optional OpenAI TTS MP3 generation, and dual-format storyboards: YAML (native input for shot-scraper) and RDF Turtle (optional input, auto-generated session log)."
+description: "Record screencast videos of web application interactions using shot-scraper video. Use when the user says: record a screencast, record a video demo, make a walkthrough of, record this session, record what you just did, add voice-over narration, or mix narration into a screencast. Handles mTLS-authenticated endpoints (linkeddata.uriburner.com:5443), local dev server demos, after-the-fact recording from curl session history, optional OpenAI TTS MP3 generation, dual-format storyboards (YAML/RDF Turtle), and DEFAULT distribution HTML that MUST embed the primary MP4 via HTML5 video (never download-only). Male default voice: onyx."
 ---
 
 Record WebM/MP4 screencasts of browser interactions using `shot-scraper video`. Accepts YAML storyboards natively or RDF Turtle via the `ttl-to-yaml.py` converter.
@@ -111,13 +111,51 @@ Always include `--mp4` to produce both WebM and MP4 outputs.
 
 After recording, verify both files exist.
 
-### Step 6: Deliver
+### Step 6: Deliver recording files
 
 Report to the user:
 
 > "Screencast recorded:
 >   MP4:  {SCREENCAST_DIR}/{filename}.mp4
 >   WebM: {SCREENCAST_DIR}/{filename}.webm"
+
+### Step 6b: Distribution HTML — embed the MP4 (DEFAULT, BLOCKING)
+
+**Default behavior:** every screencast bundle that includes a distributable presentation page MUST embed the primary MP4 with an in-document HTML5 `<video>` player. Download-only pages fail delivery.
+
+Required pattern (bundle-relative paths; prefer narrated mux when present):
+
+```html
+<div class="player">
+  <video id="screencast-player" controls playsinline
+         poster="poster.jpg" preload="metadata"
+         width="1440" height="900"
+         aria-label="{description}">
+    <source src="{filename}-with-voiceover.mp4" type="video/mp4" />
+    <source src="{filename}.mp4" type="video/mp4" />
+    <source src="{filename}.webm" type="video/webm" />
+    <p>Your browser does not support embedded HTML5 video.
+       <a href="{filename}-with-voiceover.mp4">Download the MP4</a>.</p>
+  </video>
+</div>
+```
+
+Also required on the same page:
+- Filename: `{model-display-id}-{topic-slug}-presentation.html` (not bare `presentation.html`)
+- Bundle path: `{model-root}/screencasts/{bundle}/`
+- POSH `rel="enclosure"` + JSON-LD `VideoObject.contentUrl` matching the primary embedded file
+- Hero/footer on-behalf-of attribution
+
+Gate contract (preferences): `step-screencastEmbedMp4` (pos 156), companion howto `agent-rdf-memory/howto/screencast-distribution-artifacts.ttl` (`:stepEmbedPrimaryMp4`).
+
+Validation before handoff:
+```bash
+# Must find an embedded player sourcing the primary MP4
+grep -E '<video[^>]*controls' "{presentation}.html"
+grep -E 'src="[^"]+\.mp4"' "{presentation}.html"
+# Relative media files must exist next to the HTML
+test -f "{SCREENCAST_DIR}/{filename}-with-voiceover.mp4" || test -f "{SCREENCAST_DIR}/{filename}.mp4"
+```
 
 ### Optional: Voice-over Narration
 
@@ -129,9 +167,11 @@ Use `scripts/screencast-openai-voiceover.py` when the user wants an OpenAI TTS n
 python3 scripts/screencast-openai-voiceover.py \
   --text-file narration.txt \
   --output "{SCREENCAST_DIR}/{filename}-voiceover.mp3" \
-  --voice coral \
+  --voice onyx \
   --instructions "Speak as a calm, confident technical narrator. Keep the pace measured and clear."
 ```
+
+Default voice for male narration is **onyx**; use **coral** (or another OpenAI TTS voice) only when the user requests a different voice.
 
 The script requires `OPENAI_API_KEY` and the Python `openai` package. If local Python dependencies are broken, tell the user clearly and either repair the environment with approval or ask them to provide an externally generated MP3.
 
@@ -148,6 +188,8 @@ ffmpeg -y \
 ```
 
 Verify the output with `ffprobe` and keep the original silent MP4 unless the user explicitly asks to replace it.
+
+**After muxing, the distribution HTML `<video>` primary `<source>` MUST point at `{filename}-with-voiceover.mp4`.**
 
 ### Step 7: Log (Post-Recording)
 
