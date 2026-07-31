@@ -10,7 +10,7 @@
 <> a schema:CreativeWork ;
     schema:name "preferences.ttl"@en ;
     schema:description "Configuration for agent RDF memory management and semantic memory skill usage." ;
-    schema:dateModified "2026-07-17T18:44:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-07-30T16:00:00Z"^^xsd:dateTime ;
     schema:dateCreated "2026-05-29T17:22:00Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :agentBehaviorGuide .
@@ -96,13 +96,15 @@
         <howto/webid-verification-services.ttl>,
         <howto/webid-verification-table.ttl>,
         <howto/delegation-insert-gate.ttl>,
-        <howto/youid-validation-gates.ttl> ;
+        <howto/youid-validation-gates.ttl>,
+        <howto/p12-passphrase-uyi-file.ttl> ;
     schema:step :step-whoamiFormat, :step-webidTlsVerification, :step-verifiedWhoami,
         :step-whoamiSameAsHyperlinks, :step-urlsAsHyperlinks, :step-stripeSandboxCard,
         :step-verifyRecipDelegation, :step-verifyDelegationRemote,
         :step-webidVerificationServiceSelection, :step-webidVerificationTable,
         :step-delegationLocalFiles, :step-delegationInsertGate,
-        :step-oboHeaderFormat, :step-youidValidationGate .
+        :step-oboHeaderFormat, :step-youidValidationGate,
+        :step-p12PassphraseUyiFile .
 
 # ── 2. Memory Management & Session Governance ──────────────────────────────
 
@@ -145,6 +147,7 @@
         :step-modelIdentityPreflight, :step-defaultOutputRoot,
         :step-modelOverEnvironment, :step-noPromptModelOverride, :step-modelIdentityResolution,
         :step-artifactPlacement, :step-screencastDistributionArtifacts,
+        :step-screencastPresentationNaming, :step-screencastEmbedMp4,
         :step-remoteWebdavUpload, :step-savedPromptsFolder, :step-filesystemPathVerification .
 
 # ── 4. RDF Authoring & Entity Resolution ────────────────────────────────────
@@ -232,12 +235,14 @@
         <howto/owl-property-characterization.ttl>,
         <howto/ontology-discovery.ttl>,
         <howto/kg-explorer-edge-property-typing.ttl>,
-        <howto/elicit-before-conditional-default.ttl> ;
+        <howto/elicit-before-conditional-default.ttl>,
+        <howto/ontology-subsumption-plausibility.ttl> ;
     schema:step :step-ontologyCrossReference,
         :step-owlPropertyCharacterization,
         :step-mintingRunsOntologyGates,
         :step-elicitBeforeConditionalDefault,
-        :step-crossDocumentLocalTermReuse .
+        :step-crossDocumentLocalTermReuse,
+        :step-subsumptionPlausibilityAbduction .
 
 # ── 7. Skill Chain & Workflows ──────────────────────────────────────────────
 
@@ -2105,3 +2110,150 @@ RULE: an owl:Ontology is never a second rdf:type bolted onto a resource that is 
 Applied to two documents same day: buzz-block-thesis-value-prop-claude_sonnet_5-1.ttl (4 local terms retargeted from `<>` to `:ontology`) and the corpus registry itself, entities/ontology-terms.ttl (which had the IDENTICAL conflation — `<> a schema:CreativeWork, owl:Ontology` — caught retroactively during this same correction pass; un-conflated the same way, 16 rdfs:isDefinedBy triples retargeted to a new `:ontology` resource). Validated via rdflib both times: exactly one owl:Ontology instance per file, zero remaining isDefinedBy triples pointing at a non-owl:Ontology-typed document root."""@en ;
     onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerPreferencesUpdate ;
     rdfs:seeAlso <entities/ontology-terms.ttl>, <../howto/cross-document-local-term-reuse.ttl>, <../preferences.ttl#step-ontologyReuseNotWriteBack> .
+
+# ── Step 155: Screencast / Presentation HTML Naming Style ───────────────────
+
+:step-screencastPresentationNaming a schema:HowToStep ;
+    schema:position 155 ;
+    schema:name "Name distributable screencast presentation HTML as {model-display-id}-{topic-slug}-presentation.html — never bare presentation.html"@en ;
+    schema:text """Stated by the user 2026-07-24 after renaming presentation.html → grok-4.5-context-from-pdf-presentation.html and requesting the naming style be noted for future operations. Confirmed by prior-day pattern grok-4.5-context-presentation.html (2026-07-23).
+
+RULE — two roles, two names:
+
+1. DISTRIBUTABLE presentation (embeds the MP4 player, hero attribution, JSON-LD, downloads):
+   Pattern: {model-display-id}-{topic-slug}-presentation.html
+   Examples:
+     - grok-4.5-context-from-pdf-presentation.html
+     - grok-4.5-context-presentation.html
+   Model display id: human-readable product form with version dots and hyphens as used in the UI (e.g. grok-4.5, claude-sonnet-5) — lowercase. Do NOT use session-file underscores (grok_4_5) or a bare generic name.
+   Topic slug: short kebab-case phrase describing the content (context-from-pdf, context, 11-layer-stack, etc.).
+   Suffix: always -presentation.html
+
+2. RECORDING scene deck (scroll-snap slides used only as shot-scraper input):
+   Prefer a functional name such as presentation-scenes-recording-deck.html inside the same screencasts/{bundle}/ folder. Do not brand the recording deck as the public presentation filename.
+
+PROHIBITED for the public/distributable page: presentation.html, index-only-as-sole-player without a model-topic presentation file when the user expects a named presentation artifact, or reusing the recording-deck filename as the distribution page.
+
+Cross-links: index.html (if present), storyboard.yml, and POSH/prefetch links must use the model-topic presentation filename after creation. Bundle still routes to {model-root}/screencasts/ per step-screencastDistributionArtifacts."""@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/screencast-distribution-artifacts.ttl>, <howto/artifact-routing.ttl> .
+
+# ── Step 156: Screencast HTML MUST embed the MP4 player ─────────────────────
+
+:step-screencastEmbedMp4 a schema:HowToStep ;
+    schema:position 156 ;
+    schema:name "Distributable screencast presentation HTML MUST embed the primary MP4 via HTML5 video — never download-only links"@en ;
+    schema:text """BLOCKING GATE for screencast distribution HTML (the {model-display-id}-{topic-slug}-presentation.html page and any index player wrapper whose primary purpose is to present the recording).
+
+REQUIREMENTS:
+1. Include a visible in-document HTML5 <video controls> (playsinline recommended) that plays the primary deliverable MP4 inline.
+2. Prefer the narrated mux as primary source when present: {basename}-with-voiceover.mp4; fall back to silent {basename}.mp4 and/or {basename}.webm as additional <source> elements.
+3. Use bundle-relative src/href only (same folder) — never file: or absolute /Users/... paths.
+4. Provide poster= when a poster frame exists; set a meaningful aria-label; keep a download fallback <a> only inside the video element's fallback content (for non-supporting browsers), not as the sole way to watch.
+5. POSH rel=enclosure and JSON-LD VideoObject contentUrl remain required and MUST match the embedded primary file.
+6. A page that only lists download links, redirects without a player, or embeds only an external non-bundle URL fails this gate.
+
+Applies alongside step-screencastDistributionArtifacts (routing) and step-screencastPresentationNaming (filename). Companion procedure: howto/screencast-distribution-artifacts.ttl step-embedPrimaryMp4. Default skill behavior: screencast-recorder SKILL.md Step 6b / distribution HTML section."""@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerPreferencesUpdate, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/screencast-distribution-artifacts.ttl>, <howto/artifact-routing.ttl> .
+
+# ── Step 157: Disambiguate FAQ/Glossary/HowTo/Table section labels ──────────
+
+:step-disambiguatedSectionLabels a schema:HowToStep ;
+    schema:position 157 ;
+    schema:name "FAQPage/HowTo/Glossary/Table section entities must use '{Article Short Title} -- {Section Type}' as schema:name, never a bare generic label"@en ;
+    schema:text "FAQPage, HowTo, glossary, and comparison Table section entities must set schema:name to '{Article Short Title} -- {Section Type}', never a bare generic label, preserving any prior descriptive text as schema:description."@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/disambiguated-section-labels.ttl> .
+
+# ── Step 158: Recurring miss — hero-meta on-behalf-of attribution omitted ────
+
+:step-heroAttributionRecurringMiss a schema:HowToStep ;
+    schema:position 158 ;
+    schema:name "Hero-meta KG curation attribution (Step 47/61) is a pre-build gate, not a post-hoc nicety — re-check it explicitly on every generated HTML infographic before delivery"@en ;
+    schema:text "Grep the generated HTML for the literal string 'KG curated by' and the generated RDF/JSON-LD for 'actedOnBehalfOf' as an explicit pre-delivery check on every generated artifact set, even when reusing a known-good template shell."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/kg-curation-attribution.ttl>, <#step-kgCurationAttribution> .
+
+# ── Step 159: Reused template shells silently lack newer contract sections ──
+
+:step-reusedTemplateContractDrift a schema:HowToStep ;
+    schema:position 159 ;
+    schema:name "A reused HTML template is a snapshot of the contract on its generation date — audit it feature-by-feature against the current SKILL.md before trusting it"@en ;
+    schema:text "Grep a reused template for each named current-contract feature (KG Explorer label geometry/anchors, SPARQL GRAPH/FROM pattern, nav inactivity-fade/manual-hide/resize) before treating it as compliant."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/reuse-proven-patterns.ttl> .
+
+# ── Step 160: /tmp/uyi PKCS#12 passphrase file format ───────────────────────
+
+:step-p12PassphraseUyiFile a schema:HowToStep ;
+    schema:position 160 ;
+    schema:name "When PKCS#12 password is in /tmp/uyi (or user-named path): each line is KEY=VALUE — unlock with the VALUE of the first pair only"@en ;
+    schema:text """Stated by the user 2026-07-30 after the agent failed to unlock link-in-bio-credentials-5/cert.p12 by treating whole lines of /tmp/uyi as bare passwords. Correct parse: lines are KEY=VALUE pairs; the principal p12 passphrase is the substring after the first '=' on the first non-empty line (first key-pair value). Never use the whole line, the key, or concatenated lines unless the user explicitly says otherwise. Never print, log, or store the value in memory files. Companion: howto/p12-passphrase-uyi-file.ttl."""@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/p12-passphrase-uyi-file.ttl>, <howto/session-governance.ttl>, <howto/verified-identity.ttl> .
+
+# ── Step 161: Entity resolver-linking gates — first occurrence + RDF/HTML parity ──
+
+:step-entityFirstOccurrenceAndParity a schema:HowToStep ;
+    schema:position 161 ;
+    schema:name "Resolver-link every named entity at its FIRST occurrence; every entity minted in the companion TTL must appear somewhere in the HTML"@en ;
+    schema:text """Two gaps found 2026-07-30 on ontologies-agentic-systems-latent-space-mesh-claude_sonnet_5-1.html: (1) Frank Coyle, Emil Eifrem, Kingsley Idehen, Prasenjit Sarkar, Neo4j, OpenLink Software, and UC Berkeley were all named in the hero/intro paragraphs as plain unlinked text, only becoming resolver-linked later at a quote-card — the FIRST occurrence in reading order was left unlinked. (2) Two TTL entities ('lux', 'Oxford Semantic Technologies') never appeared anywhere in the HTML at all — an RDF/HTML parity gap. Both are now BLOCKING CHECKS before delivering any HTML infographic with resolver-linked entities: (a) for every named schema:Person/schema:Organization in the companion TTL, the first literal-name match in the HTML body must be inside a resolver <a href> anchor; (b) every schema:Person/Organization/DefinedTerm subject in the companion TTL must have at least one real mention in the HTML body or KG Explorer kgData."""@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/entity-href-companion-ttl.ttl> .
+
+# ── Step 162: Frame single-source-article collections as notes about the article ──
+
+:step-articleNotesFraming a schema:HowToStep ;
+    schema:position 162 ;
+    schema:name "Frame RDF+HTML collections built from a single source article as notes taken about that article"@en ;
+    schema:text """Stated by Kingsley 2026-07-30 for the Latent Space 'Ontologies Are So Back' collection. When a kg-generator/rdf-infographic-skill collection is generated FROM a single named external article (including meshup variants that also cross-reference other corpus documents), frame it in schema:description, hero copy, and section labeling as notes/commentary taken about that article — not as a standalone publication, a definitive analysis, or the article's own official companion. This is a tone/description choice, not a scope reduction: the full harness contract (FAQ, glossary, HowTo, resolver-linking, RDF/HTML parity, KG Explorer, attribution) still applies in full."""@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/article-notes-framing.ttl> .
+
+# ── Step 163: Locally-declared ontology terms must be used under their own namespace ──
+
+:step-localTermNamespaceConsistency a schema:HowToStep ;
+    schema:position 163 ;
+    schema:name "A local ontology term declared correctly is still a gate violation if invoked under schema: (or any foreign prefix) instead of its own namespace"@en ;
+    schema:text """Caught 2026-07-30 on ontologies-agentic-systems-latent-space-mesh-claude_sonnet_5-1.ttl: `:meshesWith` was correctly declared as a local rdf:Property (rdfs:domain/range, rdfs:isDefinedBy :), but the one place it was actually used asserted `schema:meshesWith` — fabricating a nonexistent schema.org term at the call site despite the declaration itself being correct. BLOCKING CHECK before delivery: for every term declared under the bare `:` prefix as a rdf:Property/rdfs:Class/owl:Class, grep the whole file for that term name immediately preceded by any OTHER declared prefix (schema:, dbr:, owl:, etc.) — any hit means the term was invoked under a namespace that doesn't own it, and must be corrected to the bare local form. Applies to every foreign vocabulary in scope, not schema.org alone."""@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/local-term-namespace-consistency.ttl> .
+
+# ── Step 164: Keep filesystem agent-rdf-memory edits synced to an active Virtuoso instance ──
+
+:step-filesystemVirtuosoSync a schema:HowToStep ;
+    schema:position 164 ;
+    schema:name "When a Virtuoso instance is in active use, mirror every filesystem edit to agent-rdf-memory via WebDAV (preferred) or SPARQL INSERT — immediately, not batched"@en ;
+    schema:text """Stated by Kingsley 2026-07-30: localhost is the operator's Virtuoso instance for this setup, reachable via SPARQL at https://localhost/sparql and via WebDAV at https://localhost/DAV/home/kidehen/ (mounted locally at /Volumes/kidehen). SPARQL INSERT/LOAD and WebDAV copy are equivalent sync mechanisms; the operator's preference is WebDAV copy, targeting /Volumes/kidehen/rdf-import-test/{relpath} (mirroring agent-rdf-memory/{relpath} exactly, subfolders included) — this maps to named graph urn:dav:/DAV/home/kidehen/rdf-import-test/{relpath}. BLOCKING FINDING: this agent's own sandbox denies direct filesystem access to the mounted volume ('Operation not permitted'), so the reliable mechanism is a curl PUT against the DAV URL directly (https://localhost/DAV/home/kidehen/rdf-import-test/{relpath}), not `cp` to the mount — same underlying resource, different access path. Sync immediately after any write to preferences.ttl, ontology.ttl, index.ttl, howto/*.ttl, entities/*.ttl, or sessions/*.ttl during a session where Virtuoso is confirmed active (per the SessionStart SPARQL bootstrap succeeding) — never batch or defer, since the next session's SPARQL-first bootstrap reads Virtuoso directly and would silently serve a stale copy otherwise. This howto does not apply when the session's bootstrap fell back to filesystem-only mode."""@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/filesystem-virtuoso-sync.ttl> .
+
+# ── Step 165: RDF output defaults to Turtle only — JSON-LD requires explicit request ──
+
+:step-turtleOnlyDefaultNoImpliedJsonld a schema:HowToStep ;
+    schema:position 165 ;
+    schema:name "Never generate JSON-LD as a side effect of an HTML companion's format-toggle footer — Turtle only unless the user names JSON-LD explicitly"@en ;
+    schema:text "Default every RDF+HTML generation to Turtle only; produce JSON-LD only when the user's own words name it in that session."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/turtle-only-default.ttl> .
+
+# ── Step 166: Subsumption Plausibility Verification and Abduction (subclass + subproperty) ──
+
+:step-subsumptionPlausibilityAbduction a schema:HowToStep ;
+    schema:position 166 ;
+    schema:name "Verify rdfs:subClassOf/rdfs:subPropertyOf placements structurally and textually, then abduce plausible missing axioms for terms left at a maximally generic superclass/superproperty"@en ;
+    schema:text "Every rdfs:subClassOf and rdfs:subPropertyOf placement made during ontology generation must pass a structural fit check and a textual plausibility check, followed by an abduction re-scan that proposes missing axioms, with rationale, for terms left at a maximally generic superclass/superproperty."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/ontology-subsumption-plausibility.ttl>,
+        <howto/ontology-cross-reference-gate.ttl#step-subpropertyReasoning>,
+        <howto/ontology-cross-reference-gate.ttl> .
+
+# ── Step 167: One canonical full-stack attribution surface per document — footer tech-grid, everywhere else a pointer ──
+
+:step-attributionSingleCanonicalSurface a schema:HowToStep ;
+    schema:position 167 ;
+    schema:name "The full skills/LLM/server/KG-endpoint attribution stack is enumerated in exactly ONE visible place per HTML page — the footer tech-grid; hero-meta stays a short delegation line and other sections point at the footer instead of repeating the list"@en ;
+    schema:text "Designate the footer tech-grid as the sole full-stack attribution listing; the hero-meta line stays a short 'curated by {skills+llm} on behalf of {principal}' delegation statement, and any other section either omits the tool inventory or references the footer instead of restating it."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/kg-curation-attribution.ttl#stepSingleCanonicalSurface> .

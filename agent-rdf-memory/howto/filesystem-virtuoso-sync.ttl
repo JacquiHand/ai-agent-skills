@@ -1,0 +1,53 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+: a schema:CreativeWork ;
+    schema:about :filesystemVirtuosoSync .
+
+:filesystemVirtuosoSync a schema:HowTo ;
+    schema:name "Keep agent-rdf-memory filesystem edits in sync with an active Virtuoso instance"@en ;
+    schema:description "When a local/network-reachable Virtuoso instance is in active use for this session's SPARQL-first memory bootstrap, a filesystem-only edit to agent-rdf-memory (preferences.ttl, ontology.ttl, index.ttl, howto/*.ttl, entities/*.ttl, sessions/*.ttl) leaves Virtuoso's copy stale. Two equivalent sync mechanisms exist — SPARQL INSERT/LOAD, and WebDAV copy — and this document records when each applies and how to execute the operator's preferred one (WebDAV copy)."@en ;
+    schema:dateCreated "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-07-30T00:00:00Z"^^xsd:dateTime ;
+    schema:step :step1, :step2, :step3, :step4, :step5, :step6 .
+
+:step1 a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Detect whether this howto applies to the current session"@en ;
+    schema:text """Applies only when a Virtuoso instance is an active read source for this session — evidenced by the SessionStart SPARQL bootstrap having resolved real graph IRIs (ontology graph, preferences graph, index graph) rather than falling back to filesystem-only reads. For the operator's own setup this is https://localhost/sparql with graphs under urn:dav:/DAV/home/kidehen/rdf-import-test/. If the bootstrap fell back to filesystem-only mode this session, this howto does not apply — plain filesystem edits are sufficient until a Virtuoso instance is confirmed reachable again."""@en .
+
+:step2 a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Two equivalent sync mechanisms — pick per operator preference"@en ;
+    schema:text """(A) SPARQL INSERT/LOAD: issue a SPARQL Update (INSERT DATA { GRAPH <graph-iri> { ... } }) or a server-side LOAD against the endpoint (https://localhost/sparql for this operator). Requires constructing valid SPARQL Update syntax and any endpoint auth the instance requires. (B) WebDAV copy: copy/PUT the edited local file to the DAV path that mirrors it; Virtuoso auto-loads recognized RDF file extensions (.ttl, .rdf, .jsonld, etc.) placed via WebDAV into the corresponding named graph, so no query needs to be authored. Both mechanisms achieve the identical end state — a triple-for-triple match between the filesystem file and the Virtuoso-visible graph. OPERATOR PREFERENCE (Kingsley, stated 2026-07-30): WebDAV copy, because the mapped folder is already mounted and accessible, and it requires no query authoring per edit."""@en .
+
+:step3 a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Path / mount / graph-IRI mapping for this operator's setup"@en ;
+    schema:text """Four equivalent addresses for the SAME resource, for this operator's localhost Virtuoso:
+  local file:      agent-rdf-memory/{relpath}                                          (e.g. preferences.ttl, howto/foo.ttl, entities/bar.ttl)
+  DAV URL:         https://localhost/DAV/home/kidehen/rdf-import-test/{relpath}
+  mounted volume:  /Volumes/kidehen/rdf-import-test/{relpath}                            (macOS WebDAV mount of https://localhost/DAV/home/kidehen/, confirmed via `mount` 2026-07-30)
+  named graph IRI: urn:dav:/DAV/home/kidehen/rdf-import-test/{relpath}                   (used in SPARQL FROM/GRAPH clauses; matches the SessionStart bootstrap context pack)
+{relpath} must preserve subfolder structure exactly (howto/foo.ttl stays howto/foo.ttl, not flattened) so the DAV tree mirrors the git tree 1:1."""@en .
+
+:step4 a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Mechanics — prefer curl-based DAV PUT over the Finder-mounted volume"@en ;
+    schema:text """BLOCKING FINDING (2026-07-30): direct filesystem access to the mounted volume path (`ls /Volumes/kidehen/rdf-import-test/`, `cp ... /Volumes/kidehen/rdf-import-test/...`) returned 'Operation not permitted' under this agent's own sandbox, even though the volume is validly mounted for the human operator (confirmed via `mount` showing `https://localhost/DAV/home/kidehen/ on /Volumes/kidehen (webdav, ...)`). Do not treat that failure as 'the mount is broken' — it is this agent's sandbox restricting access to /Volumes, not a real unavailability. The reliable path for THIS agent is a direct HTTP PUT against the DAV URL, per the corpus's existing curl-first tool preference (feedback_curl_first_mcp_last_resort.md, Step 133):
+
+  curl -sk -X PUT --data-binary @{local-file-path} "https://localhost/DAV/home/kidehen/rdf-import-test/{relpath}"
+
+Check reachability/auth first with an unauthenticated PROPFIND or GET; only add -u user:pass or client-cert flags (see mtls-curl skill) if a 401/403 comes back. If the sandbox is later found to permit /Volumes access (e.g. under an elevated permission mode), a plain `cp` to the mounted path is equally valid and achieves the identical result — the DAV URL and the mounted path are the same underlying resource."""@en .
+
+:step5 a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Trigger — sync immediately after the write, never batched or deferred"@en ;
+    schema:text """Whenever a local edit lands in preferences.ttl, ontology.ttl, index.ttl, any howto/*.ttl, any entities/*.ttl, or any sessions/*.ttl file DURING a session where Step 1 confirms Virtuoso is active, mirror that same file via the Step 4 mechanism immediately — before the turn ends, not batched at session end. Rationale: the next session's SPARQL-first bootstrap reads directly from Virtuoso; a stale Virtuoso copy would silently serve outdated preferences/ontology/index content even though the filesystem (and git) copy is current, defeating the entire point of the dual-homed setup."""@en .
+
+:step6 a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "Verify and handle autoload-disabled folders"@en ;
+    schema:text """After a WebDAV PUT, optionally confirm the new/changed content landed by re-fetching the resource (GET) or running a quick SPARQL ASK/SELECT against the corresponding named graph IRI (Step 3). Virtuoso's WebDAV layer auto-loads recognized RDF file extensions into the matching named graph on PUT/COPY by default; if a specific DAV folder has RDF autoloading disabled, an explicit load step (DB.DBA.TTLP / DB.DBA.RDF_LOAD_RDFXML / rdf_loader_run, or a SPARQL LOAD statement) is needed instead — verify this ONCE per folder, not on every file sync, and record the finding here if this folder turns out to need it."""@en .

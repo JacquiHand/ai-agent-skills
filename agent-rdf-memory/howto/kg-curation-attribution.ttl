@@ -23,7 +23,9 @@
                 :stepSubstitutionRules,
                 :stepAntiPatterns,
                 :stepRdfDelegation,
-                :stepEntityLevelAuthorship .
+                :stepEntityLevelAuthorship,
+                :stepRecurringMissLog,
+                :stepSingleCanonicalSurface .
 
 # ── Steps ─────────────────────────────────────────────────────────────────────
 
@@ -139,3 +141,34 @@ RULE: whenever the agent authors a specific sub-document entity (a critique, com
 This distinguishes "I (the agent) wrote this distillation of your views, on your behalf" (correct) from "you personally wrote this text" (incorrect, and factually false when the agent synthesized rather than quoted). Visible prose (hero-meta, section intros, footer attribution) must use matching language: "curated by {skills+agent} on behalf of {principal}" or "the AI agent authored this on behalf of {principal}" — never a bare "by {principal}" or "authored by {principal}" for agent-synthesized content.
 
 Anti-pattern: schema:author <principal-webid> on an entity the agent itself wrote. Correct pattern: schema:author <agent-entity> ; schema:accountablePerson <principal-webid> ."""@en .
+
+# ── Step 7: Recurring-miss log — treat as a pre-delivery grep gate, not tribal knowledge ──
+
+:stepRecurringMissLog a schema:HowToStep ;
+    schema:position 7 ;
+    schema:name "Recurring miss log — this pattern keeps getting dropped when reusing a prior HTML file as a template shell"@en ;
+    schema:text """Caught again 2026-07-29 on the agent-intrusion-technical-timeline HTML/RDF/MD collection: the hero-meta 'KG curated by ... on behalf of Kingsley Idehen' line was entirely absent, and the embedded JSON-LD had no accountablePerson/prov:actedOnBehalfOf delegation chain, despite this rule already being recorded as preferences.ttl Step 47/61 and Step 116/117.
+
+Root cause: when a prior generated HTML artifact is copied/adapted as a reusable template shell (CSS + KG Explorer JS engine + footer structure), the hero section and JSON-LD head block get largely rewritten per-topic, and the hero-meta curated-by line plus the JSON-LD delegation properties are small enough to fall out during that rewrite — this is a copy-paste attrition failure, not a case of the rule being unknown.
+
+FIX (mandatory pre-delivery check, every time, even for a "known-good" reused template): grep the generated HTML for the literal string 'KG curated by' before declaring the HTML complete; grep the generated RDF (Turtle and/or JSON-LD) for 'actedOnBehalfOf' before declaring the RDF complete. Treat both as blocking, not advisory. See preferences.ttl Step 158.
+
+Caught a third time 2026-07-30 on the cdoiq-2026-honest-takeaways collection — this time NOT from copying a template shell, but from writing the hero section fresh while under time pressure from an unrelated correction (a full content regeneration after an under-extracted source was caught). The grep gate in the FIX above was simply not run before declaring the HTML/RDF complete. This confirms the miss is not solely a copy-paste-template failure mode — it also drops out any time hero/JSON-LD/TTL provenance is written under pressure to fix something else. STANDING RULE REINFORCED: the 'KG curated by' / 'actedOnBehalfOf' grep gate must run on every delivery of a generated HTML+RDF collection, regardless of whether the hero was freshly authored, template-copied, or produced mid-correction for an unrelated issue."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-heroAttributionRecurringMiss> .
+
+# ── Step 8: One canonical full-stack attribution surface — everywhere else is a pointer, not a repeat ──
+
+:stepSingleCanonicalSurface a schema:HowToStep ;
+    schema:position 8 ;
+    schema:name "The full tool/model/platform stack (skills, LLM, server, KG endpoint) is listed in exactly ONE place per document — the footer tech-grid. Every other section either omits it or links to the footer instead of repeating it."@en ;
+    schema:text """Caught 2026-07-31 on the cdoiq-2026-honest-takeaways collection: the same full attribution enumeration (kg-generator, rdf-infographic-skill, Claude Sonnet 5, Virtuoso, URIBurner) appeared FOUR times on one page — the hero-meta line, an 'About This Page → Technology Stack' bullet list, the footer tech-grid (visual cards), and a footer-attribution prose paragraph directly beneath the tech-grid restating the same five items in sentence form. Three of the four were pure restatement with no new information.
+
+RULE: designate the footer .tech-grid (visual cards) as the ONE canonical full-stack listing. Every other surface either:
+  (a) omits the full stack entirely and does something else specific to its purpose — the hero-meta line stays SHORT and stays focused on the delegation relationship ('KG curated by {skills} and {llm} on behalf of {principal}'), not on enumerating every tool; the About section explains WHAT was generated and HOW (narrative), not a repeated bulleted tool inventory; or
+  (b) points at the footer instead of repeating it, e.g. 'Full generation provenance is listed once, in the footer below.'
+Do not write a second full enumeration in prose anywhere — a prose paragraph that lists the identical five tools directly below a visual grid already showing them is the textbook redundant case, not a stylistic variant.
+
+The JSON-LD/RDF machine-readable graph (prov:wasGeneratedBy, prov:actedOnBehalfOf, schema:accountablePerson) is exempt from this rule — it is invisible structured data serving a different consumer (crawlers/SPARQL), not a human-visible redundancy, and MUST still be present per stepRdfDelegation regardless of how many times the visible prose mentions the same tools.
+
+PRE-DELIVERY CHECK: grep the generated HTML for each tool name/URL used in the footer tech-grid (kg-generator, rdf-infographic-skill, the LLM's canonical URL, the server platform URL). If any appears in more than TWO human-visible locations (hero-meta's short delegation line + the one canonical footer tech-grid), consolidate before delivery."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-attributionSingleCanonicalSurface> .

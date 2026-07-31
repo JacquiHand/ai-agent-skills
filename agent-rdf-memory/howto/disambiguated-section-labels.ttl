@@ -1,0 +1,53 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a schema:CreativeWork ;
+    schema:about :disambiguatedSectionLabelsRule .
+
+:disambiguatedSectionLabelsRule a schema:HowTo ;
+    schema:name "Disambiguate schema:name labels on FAQ/HowTo/Glossary/Table section entities with an {Article Name} prefix"@en ;
+    schema:description "Pre-build gate requiring every generated document's FAQPage, HowTo, DefinedTermSet/ConceptScheme (glossary), and Table (comparison) section entities to carry a schema:name that starts with the article's own short title, rather than a bare generic label — because generic labels collide across every document in the shared corpus/graph."@en ;
+    schema:dateCreated "2026-07-26T00:00:00Z"^^xsd:dateTime ;
+    schema:step :step1, :step2, :step3, :step4 .
+
+:step1 a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Understand why generic section labels are a problem"@en ;
+    schema:text """Nearly every generated RDF companion in this corpus defines a :faqSection (schema:FAQPage), a :glossarySection (schema:DefinedTermSet/skos:ConceptScheme), and a :howtoSection (schema:HowTo), each with a schema:name. Left as generic text — "Frequently Asked Questions", "Key Terms", "How This Comparison Was Produced" — these labels are identical or near-identical across dozens of unrelated documents sharing the same linkeddata.uriburner.com graph space.
+
+This is invisible within a single document's own HTML/MD rendering (the reader has full context: one page, one topic). It becomes a real ambiguity the moment any of these entities surfaces outside that single-document context: a SPARQL query aggregating labels across multiple named graphs, a KG Explorer node tooltip, a federated search result, or any tool that lists "all schema:FAQPage instances by schema:name" across the corpus. Without a disambiguating prefix, the label alone gives no clue which article's FAQ, glossary, or HowTo it belongs to."""@en .
+
+:step2 a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Apply the naming pattern"@en ;
+    schema:text """For every section entity of this kind, set schema:name to:
+
+  "{Article Short Title} -- {Section Type}"
+
+where {Article Short Title} is a short, human-recognizable form of the document's own title (not necessarily the full schema:name of the root document, which may be a long descriptive sentence — use the concise working title, e.g. the one already used in the filename or in other section names like the comparison table) and {Section Type} is one of: FAQ, Glossary, HowTo, Comparison Table (or an equally short, conventional label for whatever table/section type is being named).
+
+Examples:
+  "Neo4j EKL vs. agent-rdf-memory -- FAQ"
+  "Neo4j EKL vs. agent-rdf-memory -- Glossary"
+  "Neo4j EKL vs. agent-rdf-memory -- HowTo"
+  "Neo4j EKL vs. agent-rdf-memory -- Comparison Table"
+
+Use a literal double-hyphen (--) as the separator, matching the pattern as specified by the user on 2026-07-26."""@en .
+
+:step3 a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Never discard the original descriptive text"@en ;
+    schema:text """If the section previously carried a purely descriptive schema:name (e.g. "How This Comparison Was Produced", "Key Terms"), do not delete that meaning when renaming for disambiguation — move it to schema:description on the same entity. The disambiguated schema:name is the query-facing label; schema:description remains the human-readable summary of what the section covers."""@en .
+
+:step4 a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Pre-build verification grep"@en ;
+    schema:text """Before delivering any companion TTL with FAQ/Glossary/HowTo/Table sections, grep for bare generic section names and reject any match:
+
+  grep -nE 'schema:name "(Frequently Asked Questions|Key Terms|Glossary|FAQ|HowTo|Comparison Table)"@en' {filename}.ttl
+
+Any match without an "{Article Short Title} -- " prefix is a contract violation. This mirrors the no-blank-nodes-resolver-entities.ttl pre-build grep pattern: a named, disambiguated entity is only useful if it can be told apart from every other entity of the same rdf:type elsewhere in the corpus.
+
+Origin: user caught this in neo4j-ekl-vs-agent-rdf-memory-claude_sonnet_5-1.ttl on 2026-07-26, where :faqSection, :glossarySection, and :howtoSection all carried bare generic schema:name literals despite the corpus already containing many other documents' identically-named sections."""@en .

@@ -1,0 +1,19 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a schema:CreativeWork ;
+    schema:name "Turtle-Only Default — No Implied JSON-LD"@en ;
+    schema:description "RDF output defaults to Turtle only; JSON-LD is never generated as an inferred side effect of an HTML companion's format-toggle footer."@en ;
+    schema:dateCreated "2026-07-30"^^xsd:date .
+
+:incident a schema:CreativeWork ;
+    schema:name "CDOIQ 2026 Substack collection — unrequested JSON-LD"@en ;
+    schema:description """Kingsley asked to generate an HTML and RDF collection for a Substack post. Nothing in the request named JSON-LD. The kg-generator skill's own governing rule states: 'Do NOT default to dual-format generation. Only produce both when explicitly requested or when the user asks for HTML/MD companions that require a format toggle in the footer.' That second clause was used circularly — the HTML page was designed with a Turtle/JSON-LD format-toggle footer, and the mere presence of that footer was then cited as the justification for generating JSON-LD. Nobody asked for the toggle either; it was carried over from a prior collection's template. Kingsley caught this and asked whether preferences needed updating."""@en ;
+    schema:dateCreated "2026-07-30"^^xsd:date .
+
+:rule a schema:CreativeWork ;
+    schema:name "Standing rule going forward"@en ;
+    schema:description """Default every RDF+HTML (or RDF+HTML+MD) generation to Turtle only. Do not build a Turtle/JSON-LD format-toggle footer speculatively — a footer control is not a reason to generate the second format it controls. Only produce JSON-LD, and only then add the toggle, when the user's own words name JSON-LD in that session (e.g. 'give me both formats', 'also produce JSON-LD'). Do not use the kg-generator skill's own elicitation prompt ('Output format: (1) Turtle, (2) JSON-LD, (3) Both?') as a nudge toward dual-format — if elicitation is used at all, Turtle-only must be presented as the default answer, not one of three equally-weighted options assumed to trend toward Both."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-turtleOnlyDefaultNoImpliedJsonld> .
