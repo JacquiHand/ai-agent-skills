@@ -17,4 +17,5 @@
 <#GraphAccessOfferShape> a sh:NodeShape ;
     sh:targetClass schema:Offer ;
     sh:property [ sh:path oplofr:isMemberOf ; sh:minCount 1 ; sh:hasValue <http://data.openlinksw.com/oplweb/OfferGroupGraphAccess#this> ] ;
-    sh:property [ sh:path schema:potentialAction ; sh:minCount 1 ] .
+    sh:property [ sh:path schema:potentialAction ; sh:minCount 1 ; sh:nodeKind sh:IRI ;
+        sh:pattern "^https://shop\\.openlinksw\\.com/shop/cart\\.vsp\\?command=add&item=" ] .
