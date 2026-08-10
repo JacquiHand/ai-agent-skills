@@ -188,6 +188,9 @@ def main() -> int:
     forbid_regex(html, r'''marker-start\s*[:=]\s*['"]?url\(#''', "marker-start found on a KG Explorer edge — edges must carry marker-end only (single directed arrowhead), never a start-side arrowhead implying bidirectionality", failures)
     require_any_regex(html, [r'<script src="https://d3js\.org/d3\.v7[^"]*"', r'<script src="https://cdn\.jsdelivr\.net/npm/d3@7/[^"]*"'], "D3 runtime script tag missing or using a non-resolving URL (e.g. https://d3js.org/d3@7, which 404s — use d3.v7.min.js or the jsdelivr path)", failures)
     require_any(html, ['clickDistance(6)', 'd3.drag()', '.drag()'], "D3 drag behavior missing", failures)
+    require_any(html, ['d3.zoom(', 'd3.zoom ('], "D3 zoom (whole-graph pan/zoom) missing — SKILL.md Validation Checklist requires 'KG Explorer D3 zoom is focus-activated'", failures)
+    require_any(html, ['kg-active', 'kgActive'], "KG zoom-isolation visual indicator (kg-active class) missing", failures)
+    require_any_regex(html, [r"""on\(['"]\.zoom['"],\s*null\)"""], "Zoom isolation release handler missing — outside click must call svg.on('.zoom', null) to detach, per SKILL.md's zoom-isolation requirement (never attach zoom on init)", failures)
     require_any_regex(html, [r'\.append\([\'"]a[\'"]\).*?(href|xlink:href)', r'<a[^>]+href="https://linkeddata\.uriburner\.com/describe/\?url='], "Resolver-backed SVG/label anchors missing", failures)
     require_any(html, ['xlink:href', '.attr(\'href\'', '.attr("href"', 'href="https://linkeddata.uriburner.com/describe/?url='], "Resolver href missing", failures)
     require_any(html, ['data-resolver-href', 'describe/?url=', 'RESOLVER'], "KG resolver href audit/pattern missing", failures)
@@ -300,9 +303,21 @@ def main() -> int:
     # SPARQL explore button must be present
     if 'id="sparqlBtn"' not in html and 'sparql-run-btn' not in html:
         fail('SPARQL explore button id="sparqlBtn" or sparql-run-btn missing', failures)
-    # Node click handlers must invoke any resolver function (resolver-agnostic)
-    if not re.search(r'\.on\(["\']click["\'][\s\S]{0,200}[Rr]esolv', html, re.S):
-        fail("Node click handler missing resolver call — nodes must open resolver on click", failures)
+    # Node click handlers must invoke any resolver function (resolver-agnostic).
+    # Accepted patterns:
+    #   (a) a plain .on('click', ...) handler that calls a resolver function
+    #   (b) the click-distance-guard pattern (kg-explorer-d3-patterns.ttl step-clickGuard):
+    #       distance is measured in drag.on('end') and a resolver call fires when the
+    #       movement is below the click threshold -- this is the CORRECT pattern and must
+    #       not be rejected just because there is no separate .on('click', ...) handler;
+    #       a separate click handler racing against d3.drag() is the bug this pattern fixes.
+    has_plain_click = re.search(r'\.on\(["\']click["\'][\s\S]{0,200}[Rr]esolv', html, re.S)
+    has_click_guard = re.search(
+        r'''on\(["']end["'][\s\S]{0,500}(?:dist|distance)[\s\S]{0,150}<\s*6[\s\S]{0,300}[Rr]esolv''',
+        html, re.S
+    )
+    if not has_plain_click and not has_click_guard:
+        fail("Node click handler missing resolver call — nodes must open resolver on click (via .on('click', ...) or the click-distance-guard pattern in drag.on('end'))", failures)
 
     validate_rdf(args.ttl, "turtle", failures)
     validate_rdf(args.jsonld, "json-ld", failures)

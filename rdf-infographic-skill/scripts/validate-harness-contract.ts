@@ -111,6 +111,9 @@ async function main(): Promise<number> {
   forbidRegex(html, /marker-start\s*[:=]\s*['"]?url\(#/s, "marker-start found on a KG Explorer edge — edges must carry marker-end only (single directed arrowhead), never a start-side arrowhead implying bidirectionality");
   requireAnyRegex(html, [/<script src="https:\/\/d3js\.org\/d3\.v7[^"]*"/, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/d3@7\/[^"]*"/], "D3 runtime script tag missing or using a non-resolving URL (e.g. https://d3js.org/d3@7, which 404s — use d3.v7.min.js or the jsdelivr path)");
   requireAny(html, ['clickDistance(6)', 'd3.drag()', '.drag()'], "D3 drag behavior missing");
+  requireAny(html, ['d3.zoom(', 'd3.zoom ('], "D3 zoom (whole-graph pan/zoom) missing — SKILL.md Validation Checklist requires 'KG Explorer D3 zoom is focus-activated'");
+  requireAny(html, ['kg-active', 'kgActive'], "KG zoom-isolation visual indicator (kg-active class) missing");
+  requireAnyRegex(html, [/on\(['"]\.zoom['"],\s*null\)/], "Zoom isolation release handler missing — outside click must call svg.on('.zoom', null) to detach, per SKILL.md's zoom-isolation requirement (never attach zoom on init)");
   requireAnyRegex(html, [/\.append\(['"]a['"]\)[\s\S]{0,200}(href|xlink:href)/, /<a[^>]+href="https:\/\/linkeddata\.uriburner\.com\/describe\/\?url=/], "Resolver-backed SVG/label anchors missing");
   requireAny(html, ["xlink:href", ".attr('href'", '.attr("href"', 'href="https://linkeddata.uriburner.com/describe/?url='], "Resolver href missing");
   requireAny(html, ['data-resolver-href', 'describe/?url=', 'RESOLVER'], "KG resolver href audit/pattern missing");
@@ -210,8 +213,13 @@ async function main(): Promise<number> {
     fail("Edge label SVG anchors missing — .pred-anchor a pattern not found in CSS or JS");
   if (!html.includes('id="sparqlBtn"'))
     fail('SPARQL explore button id="sparqlBtn" missing');
-  if (!/\.on\(["']click["'][\s\S]{0,200}resolv/.test(html))
-    fail("Node click handler missing resolver call — nodes must open resolver on click");
+  // Accepted: (a) a plain .on('click', ...) resolver call, or (b) the click-distance-guard
+  // pattern (kg-explorer-d3-patterns.ttl step-clickGuard) measured in drag.on('end') --
+  // this is the CORRECT pattern and must not be rejected for lacking a separate click handler.
+  const hasPlainClick = /\.on\(["']click["'][\s\S]{0,200}resolv/i.test(html);
+  const hasClickGuard = /on\(["']end["'][\s\S]{0,500}(?:dist|distance)[\s\S]{0,150}<\s*6[\s\S]{0,300}resolv/i.test(html);
+  if (!hasPlainClick && !hasClickGuard)
+    fail("Node click handler missing resolver call — nodes must open resolver on click (via .on('click', ...) or the click-distance-guard pattern in drag.on('end'))");
 
   // ── RDF file checks (Phase 2 will add full parse) ──────────────────────────
   await validateRdf(args.ttl, "turtle");
