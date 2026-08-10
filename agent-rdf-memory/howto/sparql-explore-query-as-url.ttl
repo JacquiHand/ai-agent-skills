@@ -1,0 +1,42 @@
+@prefix :       <#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+<> a schema:CreativeWork ;
+    schema:about :sparqlExploreQueryAsUrl .
+
+:sparqlExploreQueryAsUrl a schema:HowTo ;
+    schema:name "SPARQL explore-the-graph requests must be answered as a ready-to-click encoded query URL"@en ;
+    schema:description "When the user asks to see/show the SAMPLE()-style query for exploring a just-generated (or previously generated) knowledge graph, the answer is a single fully percent-encoded https://linkeddata.uriburner.com/sparql?query=...&format=... URL, not just the raw SPARQL text in a code block."@en ;
+    schema:dateCreated "2026-08-08T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-08T00:00:00Z"^^xsd:dateTime ;
+    schema:step :step-defaultToEncodedUrl, :step-canonicalQueryShape, :step-graphIriAssumesUpload .
+
+:step-defaultToEncodedUrl a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Default response format is the encoded URL, plain query text is a fallback only"@en ;
+    schema:text """User instruction (2026-08-08, Chief in AI 100 session): 'next time for this kind of request, you should return an encoded URL for that query.' Standing rule: whenever asked to 'show the SPARQL query to explore the graph' (or equivalent), respond with the complete https://linkeddata.uriburner.com/sparql?query={percent-encoded}&format={percent-encoded} URL as the primary deliverable. Still show the un-encoded query text alongside it for readability/copy-paste into a workbench, but the encoded URL is what satisfies the request — it is clickable and immediately runnable, unlike a bare query block."""@en .
+
+:step-canonicalQueryShape a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Reuse the canonical SAMPLE() entity-summary query shape already defined for the footer sparqlBtn / MD Explore CTA"@en ;
+    schema:text """Do not invent a new query shape per request. Reuse the pattern already codified in kg-generator/SKILL.md (HTML Infographic Footer section) and footer-sparql-explorer-gate.ttl:
+
+  SELECT ?type (SAMPLE(?s) AS ?sampleEntity) (SAMPLE(?label) AS ?sampleLabel) (COUNT(?s) AS ?entityCount)
+  WHERE {
+    GRAPH <{DAV-graph-iri}> {
+      ?s rdf:type ?type .
+      OPTIONAL { ?s rdfs:label ?label }
+    }
+  }
+  GROUP BY ?type
+  ORDER BY DESC(?entityCount)
+
+Substitute rdfs:label with schema:name (or UNION both) when the target graph's actual label predicate is schema:name rather than rdfs:label — check the generated Turtle rather than assuming rdfs:label blindly. No default-graph-uri= URL parameter; no FILTER(STRSTARTS(...)) workaround; GRAPH clause is always scoped to the specific DAV-hosted named graph, never left unscoped across the whole quad store (see virtuoso-workbench-query-dedup.ttl)."""@en ;
+    rdfs:seeAlso <footer-sparql-explorer-gate.ttl>, <virtuoso-workbench-query-dedup.ttl>, <virtuoso-sparql-formats.ttl> .
+
+:step-graphIriAssumesUpload a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "The GRAPH IRI in the query only resolves data once the .ttl has actually been PUT to that DAV path"@en ;
+    schema:text """The DAV graph IRI pattern (https://linkeddata.uriburner.com/DAV/demos/daas/{filename}) is a projected/assumed location, not proof of upload. remote-webdav-upload.ttl requires explicit user confirmation plus PKCS#12 mTLS credentials before any PUT — generating the encoded query URL does not perform that upload. State plainly, when the file has not yet been uploaded in the current session, that the query will return zero rows until the artifact is PUT to that exact DAV path, and offer the upload step separately."""@en .

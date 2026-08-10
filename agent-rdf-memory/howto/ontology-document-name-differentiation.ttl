@@ -1,0 +1,85 @@
+@prefix :       <#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix onto:   <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Ontology Document/Entity Name Differentiation"@en ;
+    schema:description "Companion howto for preferences.ttl Step 179. Extends step-ontologyIsDistinctEntity (Step 154): an owl:Ontology must be its own distinct RDF entity from the wrapping schema:CreativeWork document — this howto adds the further requirement that their schema:name/schema:description text must also be differentiated, not verbatim duplicates."@en ;
+    schema:dateCreated "2026-08-04T00:00:00Z"^^xsd:dateTime ;
+    schema:about :HowToOntologyDocNameDiff .
+
+:HowToOntologyDocNameDiff a schema:HowTo ;
+    schema:name "Differentiate the document entity's name/description from the ontology entity's"@en ;
+    schema:description "When a file has both a schema:CreativeWork document entity (<>) and an owl:Ontology entity it schema:about-links to, give them distinct schema:name/schema:description text — never identical strings on both."@en ;
+    schema:step :step-discovery, :step-pattern, :step-rationale, :step-enforcement, :step-isDefinedByBareFragmentBug .
+
+:step-discovery a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "How this was caught"@en ;
+    schema:text """User manually edited hospital-os-rdf-harness/ontology.ttl on 2026-08-04 (after several rounds of me fixing the SAME file for missing schema:name/description, then for a P-Plan external-ontology alignment) and changed:
+
+  <> schema:name "Hospital Operating System Ontology"          →  "Hospital Operating System Ontology Document"
+  <> schema:description "Models the ten operating-model..."     →  "Document about TBox for the 'Operating System' box..."
+
+while leaving :hospitalOS (the owl:Ontology entity) with its original, unqualified name/description. The user then asked that this become a standing pattern enforced via a preferences.ttl gate and the relevant skill contracts, not just a one-off fix to this one file.
+
+Checking the exemplar this document explicitly cites as its source of authoring conventions — agent-rdf-memory/ontology.ttl itself — found the SAME anti-pattern already present: `<>` and `:memoryOntology` both carried the verbatim identical schema:name 'Agent Memory Ontology'. This confirms the anti-pattern predates this specific document and was silently inherited from the canonical exemplar every mockup in this corpus is told to copy conventions from — fixed in both places as part of establishing this rule."""@en .
+
+:step-pattern a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "The pattern"@en ;
+    schema:text """Given a file with:
+
+  <> a schema:CreativeWork ;
+      schema:about :someOntology .
+
+  :someOntology a owl:Ontology .
+
+the two entities are NOT interchangeable and must not share verbatim schema:name/schema:description:
+
+  <>            — the human-readable document/artifact (the file itself, its provenance, dates, authorship)
+  :someOntology — the machine-consumable OWL vocabulary the document contains/describes
+
+CORRECT:
+  <> schema:name "{Ontology Name} Document" ;
+      schema:description "Document about {rest of the substantive description, or a short framing sentence}" .
+  :someOntology schema:name "{Ontology Name}" ;
+      schema:description "{The actual substantive TBox-content description: what classes/properties it models, what domain, what it answers}" .
+
+WRONG (the anti-pattern this rule targets):
+  <> schema:name "Hospital Operating System Ontology" ;
+      schema:description "Models the ten operating-model concept categories..." .
+  :hospitalOS schema:name "Hospital Operating System Ontology" ;              # IDENTICAL — wrong
+      schema:description "Models the ten operating-model concept categories..." .  # IDENTICAL — wrong
+
+The document entity's name gets a qualifier suffix (' Document', or similar — e.g. ' Ontology File', ' Vocabulary Document' if that reads better for a given corpus), and its description is reframed as being ABOUT the ontology rather than restating the ontology's own self-description verbatim."""@en .
+
+:step-rationale a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Why this matters beyond cosmetics"@en ;
+    schema:text "Identical schema:name/description on two distinct entities is confusing to a human reader dereferencing either IRI (both resolve to the 'same-looking' description, giving no signal about which is the container and which is the content) and is a weaker RDF modeling practice generally: two entities that always co-occur with identical literal values are a signal the modeler didn't think through what's actually different between them, which is the same root complaint behind step-ontologyIsDistinctEntity (Step 154) — an owl:Ontology conflated as a second rdf:type on the document resource is the structural version of this mistake; identical name/description text on two ALREADY-separate entities is the textual version of the same mistake." .
+
+:step-enforcement a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Where this is enforced going forward"@en ;
+    schema:text """Established as a standing gate, not just a fixed instance:
+
+1. preferences.ttl Step 179 (:step-ontologyDocumentNameDifferentiation) — the terse cross-reference into the standing behavioral contract.
+2. kg-generator/scripts/validate-kg-compliance.sh — new check 11b: extracts the first schema:name under '<> a schema:CreativeWork' and the first schema:name near 'a owl:Ontology', and FAILs the compliance audit if they are byte-identical. Verified: fails against the pre-fix agent-rdf-memory/ontology.ttl ('Agent Memory Ontology' on both), passes against the corrected hospital-os-rdf-harness/ontology.ttl ('...Ontology Document' vs '...Ontology').
+3. Both the canonical exemplar (agent-rdf-memory/ontology.ttl) and the triggering document (hospital-os-rdf-harness/ontology.ttl) were retrofitted to comply, so future documents copying 'this corpus's authoring conventions' inherit the corrected pattern rather than the anti-pattern.
+4. rdf-infographic-skill/SKILL.md and kg-generator/SKILL.md validation checklists should reference this rule wherever they already discuss the owl:Ontology-is-a-distinct-entity requirement (Step 154), so a human reading the skill contract sees the naming rule alongside the entity-modeling rule it extends — add on next skill-doc touch rather than as an urgent separate edit, since the enforceable gate is the validator script check, not the prose alone."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-ontologyIsDistinctEntity>.
+
+:step-isDefinedByBareFragmentBug a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "A third rdfs:isDefinedBy failure mode: pointing at the bare ':' (<#>) fragment instead of the named owl:Ontology entity"@en ;
+    schema:text """Caught 2026-08-05, same hospital-os-rdf-harness/ontology.ttl, one day after establishing this howto. Step 154 (:step-ontologyIsDistinctEntity) already documents two wrong targets for rdfs:isDefinedBy: the document root `<>`, and a second rdf:type conflated onto an existing resource. This is a THIRD, distinct variant: every one of the 26 classes/properties in the file used `rdfs:isDefinedBy : .` — the bare `:` prefix, which under `@prefix : <#>.` expands to `<#>`, the empty-fragment IRI. That IRI is never typed `a owl:Ontology` anywhere in the file; only `:hospitalOS` (`<#hospitalOS>`) is. So every isDefinedBy triple pointed at an untyped, unused placeholder resource rather than the actual ontology entity.
+
+Root cause: likely inherited from an earlier authoring convention (or the canonical exemplar itself, agent-rdf-memory/ontology.ttl, which had the IDENTICAL bug — 37 occurrences of `rdfs:isDefinedBy : .` instead of `:memoryOntology`) where the ontology entity may once have been minted directly at `<#>` with no local name, then later renamed to a named fragment (`:hospitalOS`, `:memoryOntology`) without updating the 26/37 isDefinedBy targets that still referenced the old bare `:` form.
+
+FIX: sed-replace `rdfs:isDefinedBy : .` → `rdfs:isDefinedBy :{OntologyLocalName} .` throughout. Both hospital-os-rdf-harness/ontology.ttl and the canonical exemplar agent-rdf-memory/ontology.ttl were retrofitted. A new blocking check (11c) was added to kg-generator/scripts/validate-kg-compliance.sh: it extracts the local name of whichever subject is typed `a owl:Ontology`, then fails if any `rdfs:isDefinedBy :` (bare) triples exist when that name isn't the bare empty string — verified it fires against a reverted copy and passes against both fixed files.
+
+GENERAL LESSON: whenever an ontology entity's local name changes (e.g. `<#>` → `:hospitalOS` during a rename/refactor, or when first differentiating the document/ontology entities per this howto's core pattern), grep for every `rdfs:isDefinedBy` target in the file and confirm it matches the CURRENT ontology entity's name — a rename to the ontology entity's own IRI does not automatically propagate to every isDefinedBy reference pointing at its old form."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-ontologyIsDistinctEntity>.

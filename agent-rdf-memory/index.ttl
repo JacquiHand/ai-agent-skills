@@ -6,7 +6,7 @@
 <> a schema:CreativeWork ;
     schema:name "Agent Session Index"@en ;
     schema:description "Index of all agent sessions with references to session files."@en ;
-    schema:dateModified "2026-07-16T00:35:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-01T11:51:40Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :sessionIndex .
 
@@ -630,7 +630,10 @@
     rdfs:seeAlso <ontology.ttl>, <AGENTS.md>, <SESSION-START-HOOK.md> .
 
 :sessionIndex schema:itemListElement :session20260715Gpt5ChatCodexSparqlContextRouting,
-    :session20260721BigPickleAcpScreencast .
+    :session20260721BigPickleAcpScreencast,
+    :session20260801BigPickleMppURIBurner,
+    :session20260802BigPickleMppSettlementMermaid,
+    :session20260803BigPickleMppAccessScreencast .
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ── Entity Registry Index ────────────────────────────────────────────────
@@ -690,3 +693,21 @@
     schema:item <sessions/2026-07-21-big_pickle-opencode.ttl> ;
     schema:name "Session 2026-07-21 (big-pickle + OpenCode — ACP SPARQL Graph Access purchase + screencast generation)"@en ;
     schema:description "End-to-end ACP purchase of ODS-QA SPARQL Endpoint Access - Graph Access ($99.98) on ods-qa.openlinksw.com. Full checkout flow: catalog query, checkout creation (cs_eef2c5a4-851d-11f1-b27f-f0569f38fb9f), Stripe SPT generation (spt_1TvgAYS0XC0wwnMmu5n7UXmG), checkout completion (order ord_0961f63a-851e-11f1-b27f-f0569f38fb9f), Playwright-based Stripe invoice payment (Invoice #QKXIYTA8-0009, sandbox card 4242...4242), post-purchase SPARQL verification (36,807 triples). Generated narrated screencast: presentation HTML (6-step walkthrough with embedded API responses and Stripe iframe), storyboard YAML (8 scenes with JS scroll actions), voiceover MP3 (GPT-4o Mini TTS, coral voice, 96s), shot-scraper video recording (WebM + MP4), ffmpeg mux (43s final MP4, 2.2MB), and story HTML document with embedded video, timeline, transcript, and stats. Output: /Users/kidehen/Documents/LLMs/Big Pickle/screencasts/2026-07-21-acp-purchase-sparql-graph-access/."@en .
+
+:session20260801BigPickleMppURIBurner a schema:ListItem ;
+    schema:position 1017 ;
+    schema:item <sessions/2026-08-01-big_pickle-opencode.ttl> ;
+    schema:name "Session 2026-08-01 (big-pickle + OpenCode — URIBurner paid file MPP purchase attempt, blocked server-side)"@en ;
+    schema:description "Attempted Machine Payment Protocol purchase of https://linkeddata.uriburner.com/DAV/demos/daas_paid/world-cup-2026-country-player-guide-meshup-gpt5-chat-1.html ($2.99, offer DemoFileAccessOffer1URIBurner#this) via port 5443 WebID-TLS principal + Stripe test SPTs. Every Payment credential shape (mppx full, simple, minimal, raw SPT, opaque variants, bearer) returns 401 Permission denied to the principal WebID; server never creates a Stripe PaymentIntent for any presented SPT. Consistent with 2026-07-30 session: ACP orders confirmed and invoices paid yet access stayed 402/401. Conclusion: server-side order-to-license-to-WebID-ACL binding broken on linkeddata.uriburner.com. User decision: report blocked and stop."@en .
+
+:session20260802BigPickleMppSettlementMermaid a schema:ListItem ;
+    schema:position 1018 ;
+    schema:item <sessions/2026-08-02-big_pickle-opencode.ttl> ;
+    schema:name "Session 2026-08-02 (big-pickle + OpenCode — URIBurner MPP browser settlement + acp-client mermaid rewrite)"@en ;
+    schema:description "Completed the previously missing settlement interaction page via Playwright: Invoice #TE3DINF0-0009 paid (Visa •••• 4242, $2.99/£2.31, merchant acct_0WWXh6SjO7aBwdnE4Rfg) yet access still returns 302->402. Route A direct SPT presentation (mpp_routeA.ts) returns 401 Permission denied. Fresh challenge dump shows two recipients (shop.openlinksw.com + ods-qa/shop/); only ods-qa accepts our ACP token. SPARQL: purchases ontology cached but zero Purchase instances on ods-qa; no purchase records/ACL for daas_paid on URIBurner. acp-client rewritten to v1.6.0: mermaids match the authoritative two-flow diagram (Route A = Agent-Centric MPP Flow, Route B = Human-Centric Shop Flow with Stripe Subscriptions), both validated PARSE OK, CHANGELOG + ZIP updated."@en .
+
+:session20260803BigPickleMppAccessScreencast a schema:ListItem ;
+    schema:position 1019 ;
+    schema:item <sessions/2026-08-03-big_pickle-opencode.ttl> ;
+    schema:name "Session 2026-08-03 (big-pickle + OpenCode — URIBurner paid file access granted 200 OK + narrated MPP screencast)"@en ;
+    schema:description "Access retry succeeded: WebID-TLS probe on linkeddata.uriburner.com:5443 returned r1: 200 SUCCESS — Invoice #TE3DINF0-0009 payment and confirmed order ord_8f65f7ca-8e08-11f1-b27f-f0569f38fb9f had propagated into the server-side WebID entitlement; 1.5 MB World Cup 2026 Country & Player Guide meshup HTML (mapping player/conference/team data across DBpedia + Wikidata) delivered and saved. Produced narrated screencast at /Users/kidehen/Documents/LLMs/Big Pickle/screencasts/2026-08-03-mpp-access-webid-identity/ following screencast-recorder + the 2026-07-21 pattern: 6-step dark-theme presentation.html with embedded real screenshots (Stripe hosted invoice settlement invoice_card.png, Invoice paid #TE3DINF0-0009 invoice_paid.png, rendered resource after 200 OK resource_access.png), 8-scene storyboard.yml, OpenAI GPT-4o-mini TTS male voiceover (onyx, narration.txt ~223s, URIBurner pronounced U-R-I Burner, SPARQL as Sparkle), shot-scraper video (WebM+MP4), ffmpeg-muxed final 2026-08-03-mpp-access-webid-identity-with-voiceover.mp4 (223s, 10.8 MB), and .log.ttl. Narrative frames the flow as fine-grained attribute-based access control (ABAC) — a new kind of agentic commerce where valuable content is no longer available to AI agents at $0.00 for training and service production, then sold back per-token-per-million for prompt input and response output. Payment stated as $2.99 USD (not sterling)."@en .

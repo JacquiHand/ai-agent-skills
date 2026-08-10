@@ -1,0 +1,83 @@
+@prefix :       <#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix onto:   <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Nav Panel saveState()/CSS-Transition Race Condition"@en ;
+    schema:description "Companion howto for preferences.ttl Step 176. Documents a localStorage corruption bug in the floating navigation panel's expand/collapse persistence, caused by capturing layout geometry before a CSS transition completes."@en ;
+    schema:dateCreated "2026-08-04T00:00:00Z"^^xsd:dateTime ;
+    schema:about :HowToNavSaveStateRace .
+
+:HowToNavSaveStateRace a schema:HowTo ;
+    schema:name "Defer localStorage geometry capture until after CSS transitions settle"@en ;
+    schema:description "toggleNav() must not call saveState() synchronously — it captures the pre-transition (still-collapsed) height as a corrupt 'expanded' localStorage state."@en ;
+    schema:step :step-bugDiscovery, :step-rootCause, :step-fix, :step-generalLesson, :step-defaultCollapsedCrossRef .
+
+:step-bugDiscovery a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "How it was found"@en ;
+    schema:text """Caught 2026-08-04 on hospital-os-infographic.html, in response to a user report that the nav control 'hasn't been built to spec re: hide behavior.' Live browser testing (not just static review) found two distinct nav defects in the same session:
+
+1. The manual-hide button ('×') and the collapse-toggle button both displayed the identical '−' glyph once expanded, making them visually indistinguishable despite doing different things (hide-to-marker vs. collapse-to-header). Fixed by giving the hide button a distinct '×' glyph.
+
+2. A deeper bug: expanding the nav, then reloading the page, silently re-collapsed it to a ~44px sliver even though the 'expanded' CSS class and its '−' toggle glyph were both correctly applied on reload. JS syntax was valid, the harness contract validator passed, and the manuallyHidden/reactivation-marker hide logic (a previously-fixed defect class, see kg-curation-attribution.ttl-style prior fixes) was all correct — none of that caught this bug. It only surfaced by actually expanding the nav, reloading, and inspecting localStorage plus the live computed maxHeight.
+
+A confounding factor during debugging: the sandboxed preview browser reports document.hidden=true and throttles/stalls CSS transitions whenever its tab isn't the explicitly fronted one, which looks exactly like a rendering bug (opacity/max-height stuck at the pre-transition value indefinitely) but is purely a tool artifact. Always call tabs_select to front the tab before trusting an observation that a CSS transition is 'stuck.'"""@en .
+
+:step-rootCause a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Root cause"@en ;
+    schema:text """window.toggleNav() called saveState() synchronously in the same tick as nav.classList.toggle('expanded'):
+
+  window.toggleNav = function(e){
+    const expanded = nav.classList.toggle('expanded');
+    ...
+    if (expanded) saveState();   // BUG: runs before the CSS transition animates
+  };
+
+  function saveState(){
+    if (!nav.classList.contains('expanded')) return;
+    const r = nav.getBoundingClientRect();   // still reports collapsed height here
+    localStorage.setItem(KEY, JSON.stringify({left:r.left, top:r.top, w:r.width, h:r.height, expanded:true}));
+  }
+
+At the instant saveState() runs, nav.getBoundingClientRect() still reports the pre-transition (collapsed, ~44px) height, because the '.expanded { max-height: 80vh }' CSS transition (.3s cubic-bezier) has not yet run. That stale 44px gets written to localStorage as {h:44, expanded:true}.
+
+On next page load, the restore logic applied the saved h as an INLINE style:
+
+  if (saved.h) nav.style.maxHeight = saved.h+'px';   // '44px', inline — beats the .expanded class rule
+
+An inline max-height has higher specificity than the '.expanded' class selector, so it permanently clipped the nav to a sliver on every subsequent load — even though the class and toggle glyph both said 'expanded.' This is a race condition between a synchronous JS read (getBoundingClientRect) and an async CSS transition, not a logic error in the toggle/restore code's control flow, which is why static review and the harness validator both missed it."""@en .
+
+:step-fix a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Fix applied"@en ;
+    schema:text """Two changes, both required:
+
+(1) Defer the expand-path saveState() call past the transition duration:
+
+  if (expanded) setTimeout(saveState, 320);   // .3s transition + margin
+  else { localStorage.removeItem(KEY); }      // don't persist collapsed dimensions at all
+
+(2) On restore, add a sanity floor before trusting a saved height, and self-heal the corrupt entry:
+
+  const MIN_EXPANDED_HEIGHT = 100;
+  if (saved.h && isFinite(saved.h) && saved.h >= MIN_EXPANDED_HEIGHT) {
+    nav.style.maxHeight = saved.h+'px';
+  } else if (saved.h) {
+    localStorage.removeItem(KEY);   // discard corrupt/stale state instead of applying it
+  }
+
+Verified via a real browser session (localhost static server, tab explicitly fronted with tabs_select, localStorage inspected directly): before the fix, saveState() captured h:44 immediately after toggle; after the fix, it captures the true expanded height (~394px in this document) once the setTimeout fires, and reload correctly restores that height rather than clipping to 44px."""@en .
+
+:step-generalLesson a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "General lesson beyond this one nav panel"@en ;
+    schema:text "Any localStorage write that captures layout geometry (getBoundingClientRect, offsetWidth/Height, scrollHeight, etc.) immediately after toggling a class that drives a CSS transition or animation on that same geometry is a race condition — the write must be deferred past the transition/animation duration (setTimeout matching the CSS duration, or better, a 'transitionend'/'animationend' listener) rather than running synchronously in the same event-handler tick. This applies to any future floating-nav, resizable-panel, or collapsible-section implementation in this skill's templates, not just this one document — check for this pattern whenever a saveState()-style function reads bounding-rect dimensions right after a classList.toggle() call."@en .
+
+:step-defaultCollapsedCrossRef a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Confirmed default-collapsed on page load, and cross-referenced the rule from prefs into the skill contract"@en ;
+    schema:text """User separately asked to confirm the nav panel defaults to closed on page load and that this is recorded in both the skill contract and preferences.ttl. Verified: hospital-os-infographic.html's <nav id="fnav" ...> markup carries no 'expanded' class initially, so it renders collapsed by default, consistent with rdf-infographic-skill/SKILL.md's existing 'starts collapsed by default' / 'Default page-load state is collapsed unless the user explicitly requests otherwise' language (Navigation Control Best Practices section, Header bar section, and Validation Checklist). That rule already existed in SKILL.md but had no corresponding entry in agent-rdf-memory/preferences.ttl — added as preferences.ttl Step 177 (:step-navDefaultCollapsed) so a prefs-only read (without also consulting SKILL.md) still surfaces the rule."""@en .
