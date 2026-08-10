@@ -21,7 +21,8 @@
     sh:targetClass schema:Offer ;
     sh:property [ sh:path oplofr:isMemberOf ; sh:minCount 1 ; sh:hasValue <http://data.openlinksw.com/oplweb/OfferGroupApiAccess#this> ] ;
     sh:property [ sh:path schema:url ; sh:minCount 1 ] ;
-    sh:property [ sh:path schema:potentialAction ; sh:minCount 1 ] .
+    sh:property [ sh:path schema:potentialAction ; sh:minCount 1 ; sh:nodeKind sh:IRI ;
+        sh:pattern "^https://shop\\.openlinksw\\.com/shop/cart\\.vsp\\?command=add&item=" ] .
 <#ApiAccessPaidPriceShape> a sh:NodeShape ;
     sh:targetClass schema:UnitPriceSpecification ;
     sh:property [ sh:path schema:price ; sh:minCount 1 ; sh:datatype xsd:decimal ] ;
