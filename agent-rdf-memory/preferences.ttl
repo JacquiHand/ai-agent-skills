@@ -47,7 +47,7 @@
 
 :topic-identity-webid a schema:Thing ;
     schema:name "Identity, WebID & Delegation"@en ;
-    schema:description "Agent identity format, whoami triggers, WebID-TLS verification, reciprocal delegation, On-Behalf-Of, and YouID validation."@en .
+    schema:description "Agent identity format, whoami triggers, WebID-TLS verification, reciprocal delegation, On-Behalf-Of, YouID validation, and the canonical-identity vs WebID/NetID protocol-credential distinction."@en .
 
 :topic-memory-management a schema:Thing ;
     schema:name "Memory Management & Session Governance"@en ;
@@ -104,7 +104,7 @@
         :step-webidVerificationServiceSelection, :step-webidVerificationTable,
         :step-delegationLocalFiles, :step-delegationInsertGate,
         :step-oboHeaderFormat, :step-youidValidationGate,
-        :step-p12PassphraseUyiFile .
+        :step-p12PassphraseUyiFile, :step-webidVsCanonicalIdentity .
 
 # ── 2. Memory Management & Session Governance ──────────────────────────────
 
@@ -2257,3 +2257,147 @@ Applies alongside step-screencastDistributionArtifacts (routing) and step-screen
     schema:text "Designate the footer tech-grid as the sole full-stack attribution listing; the hero-meta line stays a short 'curated by {skills+llm} on behalf of {principal}' delegation statement, and any other section either omits the tool inventory or references the footer instead of restating it."@en ;
     onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
     rdfs:seeAlso <howto/kg-curation-attribution.ttl#stepSingleCanonicalSurface> .
+
+# ── Step 168: FAQ/Glossary/HowTo Counts Track Source Density, Not a Fixed Number ──
+
+:step-countReflectsSourceDensity a schema:HowToStep ;
+    schema:position 168 ;
+    schema:name "FAQ and glossary counts must cover every distinct question-worthy claim and defined term in the source, with 10 as an anti-under-delivery floor, never a ceiling to stop at"@en ;
+    schema:text "The FAQ and glossary minimums (>= 10 each) are a floor against under-delivery, not a target count — the delivered set must span every distinct question-worthy claim and defined term the source material actually contains, whether that means padding is never needed or the count runs well past 10."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/full-skills-contract-always-applies.ttl#step-countReflectsSourceDensity> .
+
+# ── Step 169: A generator script's own validators are not proof of full-contract compliance; owl:sameAs alias IRIs must stay untyped ──
+
+:step-generatorScriptNotSubstituteForChecklist a schema:HowToStep ;
+    schema:position 169 ;
+    schema:name "rdf-infographic-skill's generate_infographic.py + its bundled validators check a narrower surface than the full contract; also, owl:sameAs alias IRIs must never be re-typed as full entities"@en ;
+    schema:text "A generator script's own bundled validators passing is not proof of full-contract compliance, and owl:sameAs alias IRIs must stay untyped or the RDF-to-HTML extractor renders duplicate entity cards."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> .
+
+# ── Step 170: An ad hoc footer sparqlBtn patch must follow the documented Gate 2 structure, not a bare link ──
+
+:step-adHocSparqlBtnMustFollowGate2 a schema:HowToStep ;
+    schema:position 170 ;
+    schema:name "When patching a missing footer sparqlBtn onto generator output, build the full footer-sparql-explorer-gate.ttl structure (visible SAMPLE query + copy button), not a bare CTA link, and give it distinct heading text from any existing mid-page SPARQL workbench"@en ;
+    schema:text "A bare sparqlBtn link with no visible query text recreates the already-documented query-visibility defect, and reusing the exact same heading phrase as an existing mid-page SPARQL section reads as an unintended duplicate."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/footer-sparql-explorer-gate.ttl> .
+
+# ── Step 171: Elicit the entity-link-placement mode before writing any new body prose, not only when adding an HTML infographic from scratch ──
+
+:step-elicitEntityLinkModeOnAnyProseAddition a schema:HowToStep ;
+    schema:position 171 ;
+    schema:name "entity-link-placement.ttl's Mode A/B elicitation applies to ANY new body-prose section added to an existing infographic (e.g. a Synopsis added after the fact), not only to initial HTML generation"@en ;
+    schema:text "New narrative prose added to an already-delivered infographic must still get first-reference entity links per the elicited mode; a Synopsis section added later was delivered with zero entity links until asked about it."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/entity-link-placement.ttl> .
+
+# ── Step 172: A one-off footer sparqlBtn patch must be consolidated into the page's single existing SPARQL section, not stacked as a second one ──
+
+:step-consolidateNotStackSparqlSections a schema:HowToStep ;
+    schema:position 172 ;
+    schema:name "Before patching in a missing sparqlBtn, check whether the page already has a SPARQL section (id, heading, or workbench) and consolidate into it instead of adding a second one with a duplicate id/heading"@en ;
+    schema:text "Patching a required element (sparqlBtn) onto generator output must start with a duplicate-id and duplicate-heading grep against the existing page, not an unconditional append; a second footer patch produced a literal duplicate id=\"sparql-explorer\" and a repeated 'Explore Knowledge Graph using SPARQL' heading, plus a stacked, redundant About-section attribution list on top of the footer's canonical one, both only caught when the user pointed them out directly."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/footer-sparql-explorer-gate.ttl>, <howto/kg-curation-attribution.ttl#stepSingleCanonicalSurface> .
+
+# ── Step 173: A generator script's own bundled validators passing still does not mean the article's narrative body or the KG Explorer's Basic-mode feature set is complete ──
+
+:step-generatorGapsSectionBodyAndKgExplorer a schema:HowToStep ;
+    schema:position 173 ;
+    schema:name "generate_infographic.py silently drops schema:CreativeWork section bodies from rendering, and its KG Explorer omits several Basic-mode non-negotiables (label geometry/contrast, search, tooltip, predicate descriptions, edge hover)"@en ;
+    schema:text "Grep the RDF for every schema:CreativeWork under the article's schema:hasPart and confirm its schema:text is actually rendered in the HTML body, and diff the KG Explorer toolbar against SKILL.md's Basic Mode checklist item by item, rather than trusting a populated Advanced panel or the harness script's own validators."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> .
+
+# ── Step 174: Canonical identity ≠ WebID/NetID — protocol credential vs person ──
+
+:step-webidVsCanonicalIdentity a schema:HowToStep ;
+    schema:position 174 ;
+    schema:name "A WebID (NetID) is a certificate-bound protocol credential — it is NOT a person's canonical identity"@en ;
+    schema:text """Canonical identity (e.g., https://www.linkedin.com/in/kidehen#this) names WHO a person IS, independent of any protocol. A WebID or NetID (e.g., https://kingsley.idehen.net/.../link-in-bio-credentials-5/index.html#netid) is a certificate-bound identifier used WITH the WebID-TLS/mTLS protocol for authentication. A person may have multiple WebIDs (different certs, different bundles), each owl:sameAs their canonical identity. When answering 'what is my WebID?', always present the certificate-bound SAN URI as the WebID and clearly state it is a protocol credential, not the person — and name the canonical identity separately. When composing whoami, the WebID line shows the cert-bound URI; the canonical identity is the person's name + owl:sameAs links. Never say 'your WebID is your identity' — it represents identity within the protocol, it is not the identity itself."""@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/webid-vs-canonical-identity.ttl> .
+
+# ── Step 174: Load HTML+RDF infographic deliveries in an actual browser before declaring them done — grep/syntax validation cannot catch a dead external script URL ──
+
+:step-mustBrowserVerifyNotJustGrep a schema:HowToStep ;
+    schema:position 174 ;
+    schema:name "A generated HTML infographic must be loaded in a real browser (local server + console-error check + DOM population check) before delivery, not just grep/harness-validator/node-syntax-checked"@en ;
+    schema:text "The KG Explorer's SVG was completely blank across five 'PASS' validator runs because rdf-infographic-skill's own base_template.html hard-codes a 404ing D3 CDN URL, and the validator's own check tested for that literal broken string as proof of correctness rather than a working one."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl#step-loadInBrowserNotJustGrep> .
+
+# ── Step 175: TTS / voice-over pronunciation of URIBurner and SPARQL ──
+
+:step-ttsPronunciations a schema:HowToStep ;
+    schema:position 175 ;
+    schema:name "Voice-over pronunciation rules for domain terms"@en ;
+    schema:text "When generating a TTS voice-over (screencast-recorder skill) that mentions these terms, spell them phonetically so the synthesizer reads them correctly. URIBurner → write 'U-R-I Burner' (letters U, R, I, then Burner). SPARQL → write 'Sparkle'. DaaS → write 'DAAS' (rhymes with gas, starting with D). ABAC → write 'A-BACK'. This applies to narration.txt, voiceover instructions, and any TTS input text."@en ;
+    onto:hasTrigger onto:triggerPreferencesUpdate ;
+    rdfs:seeAlso <howto/screencast-recording.ttl>, <howto/artifact-routing.ttl> .
+
+# ── Step 176: Nav panel toggleNav()/saveState() race with the max-height CSS transition ──
+
+:step-navSaveStateTransitionRace a schema:HowToStep ;
+    schema:position 176 ;
+    schema:name "Defer the floating-nav's saveState() call until after the expand CSS transition settles, or it persists a corrupt collapsed-height as the 'expanded' state"@en ;
+    schema:text "Calling saveState() synchronously right after nav.classList.toggle('expanded') captures the pre-transition (still-collapsed) bounding-rect height and writes it to localStorage, which then permanently clips the nav on reload via a higher-specificity inline max-height."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/nav-panel-localstorage-race.ttl> .
+
+# ── Step 177: Floating nav panel must default to collapsed on page load ──
+
+:step-navDefaultCollapsed a schema:HowToStep ;
+    schema:position 177 ;
+    schema:name "The floating navigation panel MUST default to the collapsed header-bar state on page load (no 'expanded' class in initial markup), unless the user explicitly requests an expanded default"@en ;
+    schema:text "Already required by rdf-infographic-skill/SKILL.md; cross-referenced into prefs since it was previously skill-contract-only."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/nav-panel-localstorage-race.ttl> .
+
+# ── Step 178: Ad hoc filesystem searches scope to {LLM_ROOT}, never a whole-disk find ──
+
+:step-scopeFilesystemSearchesToLlmRoot a schema:HowToStep ;
+    schema:position 178 ;
+    schema:name "Any ad hoc filesystem search for a generated artifact (duplicate/stale-copy checks, 'where did this file go') must scope to {LLM_ROOT}, never run an unscoped whole-disk find"@en ;
+    schema:text "Caught 2026-08-04: ran 'find / -iname ontology.ttl' across the entire filesystem instead of scoping to {LLM_ROOT}, generalizing the existing LOCAL RDF ROOT rule beyond KG-ONLY query mode to any artifact lookup."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/artifact-routing.ttl#step-scopeFilesystemSearchesToLlmRoot>, <howto/skill-invocation.ttl> .
+
+# ── Step 179: Ontology document entity and owl:Ontology entity need differentiated name/description ──
+
+:step-ontologyDocumentNameDifferentiation a schema:HowToStep ;
+    schema:position 179 ;
+    schema:name "The schema:CreativeWork document entity (<>) and the owl:Ontology entity it schema:about-links to must NOT share identical schema:name/schema:description text — extends Step 154's 'owl:Ontology is a distinct entity' rule to the entities' name/description text as well"@en ;
+    schema:text "User fixed hospital-os-rdf-harness/ontology.ttl to differentiate ('...Ontology Document' vs '...Ontology'), then found the same anti-pattern in the canonical exemplar agent-rdf-memory/ontology.ttl itself — both retrofitted, and kg-generator/scripts/validate-kg-compliance.sh gained a blocking check (11b) for it."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/ontology-document-name-differentiation.ttl>, <howto/canonical-entity-iri-denotation.ttl> .
+
+# ── Step 180: rdfs:isDefinedBy must point to the actual owl:Ontology-typed entity, never the bare ':' fragment ──
+
+:step-isDefinedByBareFragmentBug a schema:HowToStep ;
+    schema:position 180 ;
+    schema:name "A third rdfs:isDefinedBy failure mode (beyond Step 154's two): pointing at the bare ':' (<#>) fragment instead of the named entity actually typed owl:Ontology"@en ;
+    schema:text "Both hospital-os-rdf-harness/ontology.ttl and the canonical exemplar agent-rdf-memory/ontology.ttl had this bug; both retrofitted and validate-kg-compliance.sh gained a blocking check (11c)."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/ontology-document-name-differentiation.ttl#step-isDefinedByBareFragmentBug>, <preferences.ttl#step-ontologyIsDistinctEntity> .
+
+# ── Step 181: XBRL/US-GAAP alignment is mandatory for SEC/EDGAR-sourced financial content ──
+
+:step-xbrlFinancialReportingAlignment a schema:HowToStep ;
+    schema:position 181 ;
+    schema:name "Financial-statement line items from SEC/EDGAR (or similar XBRL-tagged) sources MUST be aligned to the FASB US-GAAP XBRL taxonomy — an important standing preference and financial-reporting skills gate"@en ;
+    schema:text "User-stated standing preference (2026-08-06): SEC/EDGAR-sourced financial-statement line items must be aligned to the verified XBRL/us-gaap vocabulary rather than left as bare literal labels or reinvented as ad hoc local terms."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
+    rdfs:seeAlso <howto/financial-reporting-xbrl-alignment.ttl>, <howto/canonical-entity-iri-denotation.ttl> .
+
+# ── Step 182: SPARQL explore-the-graph requests get an encoded query URL, not just raw query text ──
+
+:step-sparqlExploreQueryAsUrl a schema:HowToStep ;
+    schema:position 182 ;
+    schema:name "When asked to show the SPARQL query for exploring a generated KG, return a ready-to-click percent-encoded query URL, not just a bare query code block"@en ;
+    schema:text "User-stated standing preference (2026-08-08): return a fully percent-encoded, ready-to-click SPARQL query URL as the primary deliverable, not just raw query text."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/sparql-explore-query-as-url.ttl>, <howto/footer-sparql-explorer-gate.ttl>, <howto/virtuoso-workbench-query-dedup.ttl> .

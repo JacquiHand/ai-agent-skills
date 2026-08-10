@@ -178,16 +178,23 @@ function initKGExplorer(config) {
       .attr('stroke', '#94A3B8').attr('stroke-width', 1.5).attr('stroke-opacity', 0.5)
       .attr('marker-end', function(d) { return arrowStyle === 'none' ? null : 'url(#arrow-end)'; });
 
-    var linkGs = d3.select(g).selectAll('g.link-label-group').data(linkGroups).join('g').attr('class', 'link-label-group');
-    linkGs.append('text')
-      .text(function(d) { return d.label; })
-      .attr('font-size', '9').attr('fill', '#94A3B8')
-      .attr('text-anchor', 'middle').attr('dy', '-4')
-      .style('cursor','pointer')
+    var linkGs = d3.select(g).selectAll('g.link-label-group').data(linkGroups).join('g').attr('class', 'link-label-group pred-anchor');
+    var predAnchor = linkGs.append('a')
+      .attr('data-resolver-href', function(d) { return resolveIRI(resolvePredicateIRI(d.label)) || ''; })
+      .attr('class', 'pred-anchor-link')
+      .attr('href', function(d) { return resolveIRI(resolvePredicateIRI(d.label)) || '#'; })
+      .attr('xlink:href', function(d) { return resolveIRI(resolvePredicateIRI(d.label)) || '#'; })
+      .attr('target', '_blank')
+      .attr('rel', 'noopener noreferrer')
+      .attr('data-iri', function(d) { return resolvePredicateIRI(d.label); })
+      .style('cursor', 'pointer')
       .on('click', function(e, d) {
         e.stopPropagation();
-        openInResolver(resolvePredicateIRI(d.label));
       });
+    predAnchor.append('text')
+      .text(function(d) { return d.label; })
+      .attr('font-size', '9').attr('fill', '#94A3B8')
+      .attr('text-anchor', 'middle').attr('dy', '-4');
 
     linkLines.on('click', function(e, d) {
       e.stopPropagation();

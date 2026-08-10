@@ -5,8 +5,10 @@ description: >
   purchase requests by executing checkout, cart, and order flows against OpenLink's
   ACP API. Integrates Stripe test SPT generation for checkout completion. Supports
   product resolution from OpenLink offer catalog, checkout updates, cancellation,
-  and subscription payment link detection.
-version: 1.1.0
+  and subscription payment link detection. Also handles Machine Payment Protocol
+  (MPP) 402 purchase flows for protected resources across multiple authentication
+  protocols (WebID-TLS, OAuth Bearer, Digest) selected via elicitation.
+version: 1.6.0
 type: skill
 ---
 
@@ -29,6 +31,9 @@ natural-language purchase intents.
 - "Use balance" / "Pay with balance"
 - Any request referencing the ACP API, checkout sessions, carts, or OpenLink
   software license purchases.
+- Accessing a paid/protected resource behind a 402 (MPP) paywall, when the
+  authentication protocol (WebID-TLS, OAuth, Digest) or settlement route must
+  be elicited.
 
 ## Prerequisites
 
@@ -193,6 +198,189 @@ that the purchased file/resource is accessible:
    - `404 Not Found` → wrong resource URL; verify path
 
 3. **Report result** to the user: confirmed accessible, or explain the issue.
+
+## MPP Purchase Flow for Protected Resources (Protocol-Agnostic)
+
+Use this flow when accessing a paid resource behind a **402 Payment Required**
+paywall (MPP) — e.g., files under a `daas_paid` collection on
+`linkeddata.uriburner.com`. The 6-step MPP machinery (401 → authenticate →
+`302 ?k=` → `402` challenge → obtain SPT → settle → `200` + receipt) is
+independent of the authentication protocol used to reach the resource server.
+**WebID-TLS (mTLS) is one protocol option among several** — OAuth (Bearer) and
+Digest are others. Select the protocol by elicitation when it is not clearly
+discernible from the prompt. In both settlement routes the **ACP shop is the
+merchant of record**: it owns the Stripe account and the offer catalog
+(`externalId = offer_iri` in the 402 challenge). What differs is the **flow**:
+Route A is **agent-centric MPP** — the agent obtains an SPT from Stripe and
+presents it to the resource server, which validates the challenge + SPT + ACL
+and returns the resource with a receipt; Route B is **human-centric shop flow**
+— a human user buys via the shop (Stripe subscription), the shop replicates the
+purchase subset to the resource server, and the user then accesses the resource
+authenticated.
+
+### Auth Protocol Selection (Elicitation)
+
+Pick the authentication protocol before acting. Ask the user if not inferable
+from the prompt:
+
+| Signal | Protocol |
+|---|---|
+| Client certificate / principal WebID / `:5443` / "my cert" / "WebID-TLS" | **WebID-TLS (mTLS)** |
+| `ACP_AUTH_TOKEN` / Bearer token / OAuth application / On-Behalf-Of delegation | **OAuth (Bearer)** |
+| Username/password / WebDAV ACL / "Digest" | **Digest** |
+| Any other protocol the user names | Use the user's protocol |
+
+Elicitation prompt when ambiguous:
+> "This paid resource is protected by MPP and supports multiple authentication
+> protocols. Which should I use: (1) WebID-TLS (mTLS), (2) OAuth (Bearer), or
+> (3) Digest?"
+
+If the user specifies a protocol explicitly, honor it.
+
+### Settlement Route Selection (Elicitation)
+
+Pick the route before acting. Ask the user if not inferable from the request:
+
+| Signal | Route |
+|---|---|
+| Non-UI / headless agent; no `ACP_AUTH_TOKEN`; single resource fetch; "settle the SPT directly" | **A — Agent-Centric MPP Flow** |
+| Interactive/UI human user; shop login; subscription lifecycle; purchase replication to the resource server | **B — Human-Centric Shop Flow** |
+
+Elicitation prompt when ambiguous:
+> "This paid resource supports two flows: (A) agent-centric MPP — the agent
+> presents an SPT directly to the resource server which validates it; or (B)
+> human-centric shop flow — a user buys via the shop (Stripe subscription),
+> the shop replicates the purchase to the resource server, and the user
+> accesses the resource authenticated. Which flow should I use?"
+
+### Route A — Agent-Centric MPP Flow (non-UI agent)
+
+```mermaid
+sequenceDiagram
+    participant Agent as Software Agent
+    participant RS as Resource Server
+    participant StripeSPT as Stripe (SPT)
+
+    rect rgb(255,245,230)
+    note over Agent,StripeSPT: Agent-centric MPP Flow
+    Agent->>RS: Access resource (no prior purchase)
+    RS-->>Agent: 402 Payment Required (challenge)
+    Agent->>StripeSPT: Request SPT for challenge
+    StripeSPT-->>Agent: SPT token
+    Agent->>RS: Retry with SPT credential
+    RS->>RS: Validate challenge + SPT + ACL
+    RS-->>Agent: 200 OK + receipt
+    end
+```
+
+Route A notes:
+
+1. **The agent has no prior purchase.** The first request hits the resource
+   server unauthenticated (or unentitled) and receives the `402 Payment
+   Required` challenge: `WWW-Authenticate: Payment id, method=stripe,
+   intent=charge, request=base64(amount, currency, externalId=offer_iri,
+   recipient=shop_iri, methodDetails)` plus `Link: offer_iri; rel=schema.org/offers`.
+
+2. **The SPT is obtained out of band from Stripe** — in test mode via
+   `POST https://api.stripe.com/v1/test_helpers/shared_payment/granted_tokens`
+   (payment_method `pm_card_visa`, usage_limits currency/max_amount, expires_at).
+
+3. **Present the SPT by echoing the challenge**: `Authorization: Payment
+   base64({payload:{spt}, challenge})` on the challenged resource URL. The
+   server decodes payload → spt/request/externalId, validates the challenge +
+   SPT + ACL, writes `Purchase(PurchasePending)` → `PurchaseCompleted` to the
+   purchase graph, and settles with Stripe.
+
+4. **Success is signalled by `200 OK` + `Payment-Receipt: receipt` header**,
+   where `receipt = base64url({method:stripe, status:success, timestamp,
+   reference:pi_id})`. Re-access with the same challenge replays idempotently.
+
+5. **No shop/ACP participant is involved** — the resource server settles
+   directly. The ACP shop remains the merchant of record (owns the Stripe
+   account and the offer catalog referenced by `externalId`).
+
+### Route B — Human-Centric Shop Flow (interactive / UI user)
+
+```mermaid
+sequenceDiagram
+    participant User as Human User
+    participant Shop as Shop Server
+    participant StripeSub as Stripe (Subscriptions)
+    participant RS as Resource Server
+
+    rect rgb(230,250,255)
+    note over User,StripeSub: Human-centric Shop Flow
+    User->>Shop: Login & select offer
+    Shop->>StripeSub: Create subscription
+    StripeSub-->>Shop: Subscription active
+    Shop-->>RS: Replicate purchase subset
+    User->>RS: Access resource (authenticated)
+    RS->>RS: Check ACL + purchase + subscription
+    RS-->>User: 200 OK (resource)
+    end
+```
+
+Route B notes:
+
+1. **The human user logs in to the shop and selects an offer.** The shop is the
+   merchant of record: it owns the Stripe account and the offer catalog
+   (`externalId = offer_iri` in the 402 challenge).
+
+2. **The shop creates a Stripe subscription** for the selected offer on the
+   merchant account. The subscription becomes active once its initial invoice
+   is paid — this is the "Subscription active" step, e.g. via the hosted
+   invoice (`subscription_payment` link) paid through the browser.
+
+3. **The shop replicates the purchase subset to the resource server.** The
+   shop writes the entitlement (principal → offer) into the resource server's
+   purchases graph, so the resource server can authorize the buyer without
+   re-contacting the shop.
+
+4. **The user accesses the resource authenticated.** The resource server checks
+   its ACL **plus** the purchases graph **plus** the subscription state, and
+   returns `200 OK (resource)` when the entitlement holds.
+
+### Protocol-Specific Notes
+
+- **WebID-TLS (mTLS)**: the WebID-TLS hop is on `:5443`, not `:443` — port 443
+  returns `401` (WebDAV ACL) even with a valid client cert. Request the resource
+  on `https://linkeddata.uriburner.com:5443/...` with the WebID-TLS cert to
+  trigger the `302 ?k=...` redirect that precedes the `402` challenge. Present
+  the principal's client certificate on every hop; the authenticated principal
+  WebID is the `service_id`.
+- **OAuth (Bearer)**: authenticate with `Authorization: Bearer {token}`
+  (e.g., `ACP_AUTH_TOKEN`); for delegated resource access use the `On-Behalf-Of`
+  header with a **bare WebID URI — no angle brackets** (angle brackets cause
+  delegation resolution failure, 402/401). The `{resource-iri}` placeholder uses
+  curly braces conventionally — the actual value is a bare IRI.
+- **Digest**: authenticate with HTTP Digest credentials (username/password)
+  against the WebDAV ACL before MPP 401/402 handling applies.
+
+### Shared Implementation Notes (both routes)
+
+1. **WebID-TLS session reuse trap**: disable TLS session reuse (`agent: false`)
+   for every hop. Node's default `https` agent resumes the TLS session on the
+   follow-up `?k=` request, and the resource server loses the WebID-TLS
+   principal binding — returning `401 Permission denied to <WebID>` instead of
+   the expected 302/402. Each request must use a fresh TLS connection. (Symptom:
+   curl succeeds but Node fails.)
+
+2. **Use generous timeouts** (~90-170 s per hop); the 302/402 hops on the
+   resource server are slow (30+ s each).
+
+### Access Verification
+
+After the SPT settles (Route A) or the shop replicates the purchase subset
+(Route B), re-run the authenticated probe against the resource server (fresh
+connection each hop) and check for `200 OK`:
+
+- Route A: `200 OK` + `Payment-Receipt: receipt` → access granted (idempotent
+  replay of the completed purchase)
+- Route B: `200 OK` → access granted (resource server checks ACL + purchase +
+  subscription from the replicated purchase subset)
+- `402` / `401 Permission denied to <identity>` → purchase not recorded or not
+  yet propagated; retry after cache-propagation delay, then escalate the
+  resource-server → purchase-graph → access-ACL binding server-side.
 
 ## Error Handling
 

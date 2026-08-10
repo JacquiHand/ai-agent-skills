@@ -22,6 +22,8 @@ interface Args {
   sourceUrl: string;
   sourceLabel: string;
   resolverPattern: string;
+  llmName: string;
+  llmUrl: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -34,6 +36,8 @@ function parseArgs(argv: string[]): Args {
     sourceUrl: "",
     sourceLabel: "",
     resolverPattern: "https://linkeddata.uriburner.com/describe/?url=",
+    llmName: "Claude Sonnet 5",
+    llmUrl: "https://www.anthropic.com/claude",
   };
   for (let i = 0; i < argv.length; i++) {
     switch (argv[i]) {
@@ -47,6 +51,8 @@ function parseArgs(argv: string[]): Args {
       case "--source-url":        args.sourceUrl      = argv[++i]; break;
       case "--source-label":      args.sourceLabel    = argv[++i]; break;
       case "--resolver-pattern":  args.resolverPattern = argv[++i]; break;
+      case "--llm-name":          args.llmName        = argv[++i]; break;
+      case "--llm-url":           args.llmUrl         = argv[++i]; break;
     }
   }
   return args;
@@ -82,6 +88,8 @@ function main(): number {
     sourceUrl:       args.sourceUrl,
     sourceLabel:     args.sourceLabel,
     resolverPattern: args.resolverPattern,
+    llmName:         args.llmName,
+    llmUrl:          args.llmUrl,
   };
 
   const success = assembleHtml(opts);

@@ -18,6 +18,85 @@ def fail(message: str, failures: list[str]) -> None:
     failures.append(message)
 
 
+# Prohibited path fragments — any of these appearing in the resolved path is an
+# instant fail, regardless of what LLM_ROOT resolves to. These are the exact
+# fallback locations named as prohibited in agent-rdf-memory/howto/artifact-routing.ttl
+# (step-outputDirs, step-defaultOutputRoot, step-outputRootBlockingGate) — kg-output/
+# has caused three documented misrouting recurrences (2026-08-06, 2026-08-08 x2)
+# precisely because a fully-passing validator run gave false confidence that a file
+# sitting there was correctly placed. This check exists so that can never happen again.
+_PROHIBITED_PATH_FRAGMENTS = ("kg-output", "/tmp/", "/private/tmp/")
+
+
+def _find_git_root(path: Path) -> Path | None:
+    for parent in [path] + list(path.parents):
+        if (parent / ".git").exists():
+            return parent
+    return None
+
+
+def check_output_location(
+    path: Path | None,
+    expected_subdir: str,
+    llm_root: Path,
+    failures: list[str],
+) -> None:
+    """Fail if `path` is not under {llm_root}/<Model Dir>/<expected_subdir>/.
+
+    This is a location gate, separate from and in addition to the artifact's
+    internal contract checks below. A PASS from this script has repeatedly been
+    misread as confirmation that the file was saved to the right place — it was
+    never checking that. This function closes that gap.
+    """
+    if path is None:
+        return
+    resolved = path.resolve()
+    resolved_str = str(resolved)
+
+    for frag in _PROHIBITED_PATH_FRAGMENTS:
+        if frag.strip("/") in resolved.parts or frag in resolved_str:
+            fail(
+                f"Output location violation: '{path}' resolves under a prohibited "
+                f"fallback location ('{frag}'). See agent-rdf-memory/howto/"
+                f"artifact-routing.ttl step-outputDirs — never kg-output/, a repo "
+                f"working directory, or /tmp. Move the file under {llm_root}/"
+                f"<Model Directory>/{expected_subdir}/ before delivery.",
+                failures,
+            )
+            return
+
+    git_root = _find_git_root(resolved)
+    if git_root is not None:
+        fail(
+            f"Output location violation: '{path}' is inside a git repository "
+            f"({git_root}) — generated artifacts must never be saved inside a "
+            f"working repo. Route to {llm_root}/<Model Directory>/{expected_subdir}/ "
+            f"per agent-rdf-memory/howto/artifact-routing.ttl.",
+            failures,
+        )
+        return
+
+    try:
+        resolved.relative_to(llm_root.resolve())
+    except ValueError:
+        fail(
+            f"Output location violation: '{path}' is not under the canonical LLM "
+            f"root ({llm_root}). Every generated artifact must live at "
+            f"{llm_root}/<Model Directory>/{{rdf,webpages,md}}/ per "
+            f"agent-rdf-memory/howto/artifact-routing.ttl step-outputDirs.",
+            failures,
+        )
+        return
+
+    if resolved.parent.name != expected_subdir:
+        fail(
+            f"Output location violation: '{path}' is under the LLM root but its "
+            f"parent directory is '{resolved.parent.name}', not the expected "
+            f"'{expected_subdir}/' sibling folder.",
+            failures,
+        )
+
+
 def require(html: str, needle: str, label: str, failures: list[str]) -> None:
     if needle not in html:
         fail(label, failures)
@@ -59,11 +138,29 @@ def main() -> int:
     parser.add_argument("html")
     parser.add_argument("--ttl")
     parser.add_argument("--jsonld")
+    parser.add_argument(
+        "--llm-root",
+        default=str(Path.home() / "Documents" / "LLMs"),
+        help="Canonical LLM_ROOT for the output-location gate (default: ~/Documents/LLMs)",
+    )
+    parser.add_argument(
+        "--skip-location-check",
+        action="store_true",
+        help="Skip the output-location gate (only for validating a file mid-generation, before it has been moved to its final destination)",
+    )
     args = parser.parse_args()
 
     html_path = Path(args.html)
     html = html_path.read_text(encoding="utf-8")
     failures: list[str] = []
+
+    if not args.skip_location_check:
+        llm_root = Path(args.llm_root)
+        check_output_location(html_path, "webpages", llm_root, failures)
+        if args.ttl:
+            check_output_location(Path(args.ttl), "rdf", llm_root, failures)
+        if args.jsonld:
+            check_output_location(Path(args.jsonld), "rdf", llm_root, failures)
 
     require(html, 'rel="related"', "POSH related link missing", failures)
     require(html, 'rel="alternate"', "POSH alternate link missing", failures)
@@ -89,20 +186,37 @@ def main() -> int:
     require_any(html, ['id="arrowStyle"', 'arrow', 'marker-end'], "Arrow style/directed arrows missing", failures)
     forbid_regex(html, r'''(value=["']dual["']|arrowStyle\s*=\s*['"]dual['"]|>\s*Dual\b)''', "Dual-arrow option/default found — KG Explorer edges must be single, directed (subject-to-object) arrowheads only; use 'directed'/'none', never 'dual'", failures)
     forbid_regex(html, r'''marker-start\s*[:=]\s*['"]?url\(#''', "marker-start found on a KG Explorer edge — edges must carry marker-end only (single directed arrowhead), never a start-side arrowhead implying bidirectionality", failures)
-    require(html, 'd3@7', "D3 runtime missing", failures)
+    require_any_regex(html, [r'<script src="https://d3js\.org/d3\.v7[^"]*"', r'<script src="https://cdn\.jsdelivr\.net/npm/d3@7/[^"]*"'], "D3 runtime script tag missing or using a non-resolving URL (e.g. https://d3js.org/d3@7, which 404s — use d3.v7.min.js or the jsdelivr path)", failures)
     require_any(html, ['clickDistance(6)', 'd3.drag()', '.drag()'], "D3 drag behavior missing", failures)
+    require_any(html, ['d3.zoom(', 'd3.zoom ('], "D3 zoom (whole-graph pan/zoom) missing — SKILL.md Validation Checklist requires 'KG Explorer D3 zoom is focus-activated'", failures)
+    require_any(html, ['kg-active', 'kgActive'], "KG zoom-isolation visual indicator (kg-active class) missing", failures)
+    require_any_regex(html, [r"""on\(['"]\.zoom['"],\s*null\)"""], "Zoom isolation release handler missing — outside click must call svg.on('.zoom', null) to detach, per SKILL.md's zoom-isolation requirement (never attach zoom on init)", failures)
     require_any_regex(html, [r'\.append\([\'"]a[\'"]\).*?(href|xlink:href)', r'<a[^>]+href="https://linkeddata\.uriburner\.com/describe/\?url='], "Resolver-backed SVG/label anchors missing", failures)
     require_any(html, ['xlink:href', '.attr(\'href\'', '.attr("href"', 'href="https://linkeddata.uriburner.com/describe/?url='], "Resolver href missing", failures)
     require_any(html, ['data-resolver-href', 'describe/?url=', 'RESOLVER'], "KG resolver href audit/pattern missing", failures)
 
     require_any(html, ['id="sparql-explorer"', 'sparql-explore-box', 'Explore Knowledge Graph'], "Footer SPARQL explorer missing", failures)
     require_any(html, ['id="sparqlGraph"', 'SPARQL_GRAPH', 'Named graph'], "Footer named graph selector/IRI missing", failures)
-    require_any(html, ['id="sparqlRecipe"', 'exploreQueries', 'liveQueries', 'Query recipe', 'sparql-accordion'], "Footer query recipe selector/quick links missing", failures)
+    # A single visible canonical query block (sparql-block/sparql-code, per footer-sparql-explorer-gate.ttl
+    # Gate 2/4) is an explicitly sanctioned replacement for the interactive recipe selector — not a gap.
+    require_any(html, ['id="sparqlRecipe"', 'exploreQueries', 'liveQueries', 'Query recipe', 'sparql-accordion', 'sparql-block', 'sparql-code'], "Footer query recipe selector/quick links missing", failures)
     require_any(html, ['id="sparqlText"', '<textarea', 'liveQueries', 'exploreQueries', 'sparql-code'], "Footer editable SPARQL textarea or query recipes missing", failures)
     require_any(html, ['id="sparqlFormat"', 'text/x-html+tr', 'text%2Fx-html%2Btr'], "Footer SPARQL format display/guidance missing", failures)
     require(html, 'text/x-html+tr', "SELECT result format guidance missing", failures)
     require(html, 'text/x-html-nice-turtle', "DESCRIBE/CONSTRUCT result format guidance missing", failures)
     require(html, 'encodeURIComponent', "SPARQL live link encoding missing", failures)
+
+    # Footer SPARQL Button with Format Toggle contract (SKILL.md): a dedicated
+    # id="sparqlBtn" CTA, scoped to the DAV-uploaded graph IRI (never the source
+    # document IRI), using the canonical SAMPLE-based entity-summary query.
+    # Added after a documented gap: generate_infographic.py shipped a SPARQL
+    # workbench whose graph selector defaulted to the source document IRI, and
+    # this validator gave a false PASS because it never checked for any of
+    # these three markers.
+    require(html, 'id="sparqlBtn"', "Footer SPARQL 'Explore Knowledge Graph using SPARQL' CTA (id=\"sparqlBtn\") missing", failures)
+    require(html, 'DAV/demos/daas/', "SPARQL queries not scoped to the DAV-uploaded graph IRI (https://linkeddata.uriburner.com/DAV/demos/daas/{filename}) — see 'Document IRI vs SPARQL GRAPH IRI' rule", failures)
+    require_any(html, ['sampleEntity', 'SAMPLE(?s)', 'SAMPLE%28%3Fs%29'], "Canonical entity-type-summary query (SAMPLE(?s) AS ?sampleEntity ...) missing from SPARQL button/recipes", failures)
+    require_any(html, ['entityCount', 'entityCount)', '%3FentityCount'], "Canonical entity-type-summary query's ?entityCount projection missing", failures)
 
     for label in [
         "Source material",
@@ -119,6 +233,18 @@ def main() -> int:
     require(html, "https://linkeddata.uriburner.com/describe/?url=", "URIBurner resolver pattern missing", failures)
     require(html, "https://linkeddata.uriburner.com/sparql", "URIBurner SPARQL endpoint missing", failures)
     require(html, "https://virtuoso.openlinksw.com/", "OpenLink Virtuoso attribution missing", failures)
+
+    # KG-curation attribution (agent-rdf-memory/howto/kg-curation-attribution.ttl) —
+    # documented as a recurring miss (5 occurrences); this is now a blocking gate,
+    # not just a memory/grep discipline item.
+    require(html, "KG curated by", "Hero-meta 'KG curated by ... on behalf of' attribution line missing", failures)
+    require(html, "on behalf of", "Hero-meta delegation phrase ('on behalf of') missing", failures)
+    require_any(html, ['"accountablePerson"', "'accountablePerson'"], "JSON-LD accountablePerson missing", failures)
+    require_any(html, ['"prov:actedOnBehalfOf"', "'prov:actedOnBehalfOf'"], "JSON-LD prov:actedOnBehalfOf missing", failures)
+    if 'prov:actedOnBehalfOf' in html:
+        bad_targets = re.findall(r'"prov:actedOnBehalfOf"\s*:\s*\{\s*"@id"\s*:\s*"([^"]*(?:anthropic\.com|openai\.com|github\.com)[^"]*)"', html)
+        if bad_targets:
+            fail(f"prov:actedOnBehalfOf points at a tool/LLM IRI instead of the human principal: {bad_targets}", failures)
 
     anchors = [
         (m.group(0), m.group(1))
@@ -177,9 +303,21 @@ def main() -> int:
     # SPARQL explore button must be present
     if 'id="sparqlBtn"' not in html and 'sparql-run-btn' not in html:
         fail('SPARQL explore button id="sparqlBtn" or sparql-run-btn missing', failures)
-    # Node click handlers must invoke any resolver function (resolver-agnostic)
-    if not re.search(r'\.on\(["\']click["\'][\s\S]{0,200}[Rr]esolv', html, re.S):
-        fail("Node click handler missing resolver call — nodes must open resolver on click", failures)
+    # Node click handlers must invoke any resolver function (resolver-agnostic).
+    # Accepted patterns:
+    #   (a) a plain .on('click', ...) handler that calls a resolver function
+    #   (b) the click-distance-guard pattern (kg-explorer-d3-patterns.ttl step-clickGuard):
+    #       distance is measured in drag.on('end') and a resolver call fires when the
+    #       movement is below the click threshold -- this is the CORRECT pattern and must
+    #       not be rejected just because there is no separate .on('click', ...) handler;
+    #       a separate click handler racing against d3.drag() is the bug this pattern fixes.
+    has_plain_click = re.search(r'\.on\(["\']click["\'][\s\S]{0,200}[Rr]esolv', html, re.S)
+    has_click_guard = re.search(
+        r'''on\(["']end["'][\s\S]{0,500}(?:dist|distance)[\s\S]{0,150}<\s*6[\s\S]{0,300}[Rr]esolv''',
+        html, re.S
+    )
+    if not has_plain_click and not has_click_guard:
+        fail("Node click handler missing resolver call — nodes must open resolver on click (via .on('click', ...) or the click-distance-guard pattern in drag.on('end'))", failures)
 
     validate_rdf(args.ttl, "turtle", failures)
     validate_rdf(args.jsonld, "json-ld", failures)

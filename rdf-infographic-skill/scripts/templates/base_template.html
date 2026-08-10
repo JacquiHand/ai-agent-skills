@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://d3js.org/d3@7"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
 {{ css_content }}
 .d3-fallback-message{display:none;text-align:center;padding:3rem;color:var(--text-secondary)}
@@ -141,13 +141,14 @@
 <section class="section" id="sparql-explorer">
   <h2>Explore Knowledge Graph using SPARQL<a class="headline-anchor" href="#sparql-explorer" aria-label="Link to this section">¶</a></h2>
   <p>Query the companion RDF data using SPARQL. Use the default endpoint or copy queries to your own SPARQL client.</p>
+  <p style="margin-bottom:20px"><a id="sparqlBtn" href="{{ sparql_btn_href }}" target="_blank" rel="noopener noreferrer" class="cta-btn" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--accent);color:#fff;border-radius:12px;text-decoration:none;font-weight:600;font-size:0.95rem">Explore Knowledge Graph using SPARQL</a></p>
   <div class="sparql-card">
     <div class="sparql-card-header">
       <h3>SPARQL Query Workbench</h3>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <select id="sparqlGraph" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card-bg);color:var(--text)">
           <option value="">Default Graph</option>
-          <option value="{{ base_iri }}">Named Graph (Article)</option>
+          <option value="{{ dav_graph_iri }}" selected>Named Graph (DAV)</option>
         </select>
         <select id="sparqlRecipe" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card-bg);color:var(--text)">
           {% for recipe in sparql_recipes %}
@@ -161,7 +162,7 @@
       <textarea id="sparqlText" placeholder="SELECT * WHERE { ?s ?p ?o } LIMIT 25">{{ default_sparql }}</textarea>
       <div class="sparql-actions">
         <button id="sparqlRun" class="primary">▶ Run</button>
-        <a id="sparqlLiveLink" href="https://linkeddata.uriburner.com/sparql" target="_blank" rel="noopener noreferrer" class="primary">🔗 Run live</a>
+        <a id="sparqlLiveLink" href="https://linkeddata.uriburner.com/sparql" target="_blank" rel="noopener noreferrer" class="primary sparql-run-btn">🔗 Run live</a>
         <button id="sparqlCopy">📋 Copy</button>
         <span id="sparqlFormat" style="font-size:11px;color:var(--text-secondary);align-self:center">SELECT: text/x-html+tr | DESCRIBE/CONSTRUCT: text/x-html-nice-turtle</span>
       </div>

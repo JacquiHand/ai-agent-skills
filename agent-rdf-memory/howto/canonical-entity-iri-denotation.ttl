@@ -13,7 +13,7 @@
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:step :step-personLadder, :step-nonPersonLadders, :step-thisFragmentRule,
         :step-owlSameAsSemantics, :step-schemaSameAsSemantics, :step-sameAsDecisionRule,
-        :step-localIriProhibition, :step-localIriException ;
+        :step-localIriProhibition, :step-localIriException, :step-registryLocalNameConfusion ;
     schema:workExample :workExample-sameAsQuickReference, :workExample-localIriWrongRight ;
     rdfs:seeAlso <../preferences.ttl#step-entityDenotation>, <../preferences.ttl#step-crossDocumentLocalTermReuse> .
 
@@ -99,6 +99,14 @@ All objects are document URLs (no fragment); the subject is the person entity (w
 ----------------+-----------------+-----------------+-----------------------
 owl:sameAs      | entity IRI      | entity IRI      | has #this fragment (or inherent entity IRI)
 schema:sameAs   | entity IRI      | document URL    | no #this fragment"""@en .
+
+:step-registryLocalNameConfusion a schema:HowToStep ;
+    schema:position "9"^^xsd:integer ;
+    schema:name "The people/organizations registry's own local names (:kingsleyIdehen, :tonySeale, ...) are index labels, not a template to copy into generated documents"@en ;
+    schema:text """Caught 2026-08-04 on the hospital-os-rdf-harness collection: agent-rdf-memory/entities/people.ttl uses document-local names like :kingsleyIdehen and :tonySeale as human-readable index keys within that registry file, each with owl:sameAs to the actual canonical platform IRI. When adding Brian de Francesca to that registry, the same local-name shape (:brianDeFrancesca a schema:Person ; owl:sameAs <canonical> .) was then copied into the DELIVERED companion RDF (hospital-os-rdf-harness/entities.ttl) as :brianDeFrancesca and :kingsleyIdehen — exactly the WRONG pattern in :workExample-localIriWrongRight above, in a generated document this time rather than a hand-waved example.
+
+RULE: the registry's local-name convention is registry-internal only — it exists so a human/agent can write ':kingsleyIdehen' as a mnemonic schema:about list entry in ONE curated file. It is not evidence that local IRIs are acceptable practice, and it must never be reproduced in a generated/delivered document (an infographic's entities.ttl, a KG collection, any file that gets uploaded to DAV or shipped to the user). In those documents, the canonical platform IRI itself is the sole subject, used directly, with no local alias layer — check the registry entry's owl:sameAs target and use THAT as the subject, not the registry's local name for it."""@en ;
+    rdfs:seeAlso <../entities/people.ttl> .
 
 :workExample-localIriWrongRight a schema:CreativeWork ;
     schema:name "Document-local IRI: wrong vs right"@en ;

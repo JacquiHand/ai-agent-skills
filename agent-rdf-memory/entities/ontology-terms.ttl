@@ -236,3 +236,25 @@ karp:CriticalPerspective a rdfs:Class ;
 #     ontological commitments. rdfs:seeAlso at most, never equivalence.
 #   - 'Concept' / 'Technology': too generic to assert identity across
 #     documents without inspecting instance usage; leave unaligned.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── 5. External well-known-ontology alignments (distinct from Sections 1-3) ────
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Sections 1-3 repair disjoint IRIs re-minted for the SAME concept across this
+# corpus. This section is different in kind: it cross-references a locally-minted
+# term to a genuinely EXTERNAL, independently-published ontology for interop with
+# tools/reasoners outside this corpus — not a duplicate-repair.
+
+:p-plan-hospital-os-alignment a schema:CreativeWork ;
+    schema:name "P-Plan alignment: hospital-os-rdf-harness workflow/sequencing terms"@en ;
+    schema:description "Cross-referenced 2026-08-04 in https://linkeddata.uriburner.com/DAV/demos/daas/hospital-os-rdf-harness/ontology.ttl per user request, evaluating whether the doc's Workflow-related TBox terms should align to a shared/standard vocabulary. schema.org has no formal Workflow/Step class (schema:HowTo/HowToStep serves instructional content, a different purpose than process modeling, and is used separately in the same document for :sepsisPathwayHowTo). P-Plan (http://purl.org/net/p-plan#), a W3C-community ontology for plans composed of steps, was judged the better fit."@en ;
+    schema:about <https://linkeddata.uriburner.com/DAV/demos/daas/hospital-os-rdf-harness/ontology.ttl#hospitalOS> ;
+    rdfs:comment """Alignment triples (in the source document, not duplicated here):
+  os:ClinicalPathway  owl:equivalentClass  p-plan:Plan .
+  os:WorkflowStep     owl:equivalentClass  p-plan:Step .
+  os:hasStep          owl:inverseOf        p-plan:isStepOfPlan .   # direction-reversed: os:hasStep(Pathway,Step) vs p-plan:isStepOfPlan(Step,Plan)
+  os:nextStep         owl:inverseOf        p-plan:isPrecededBy .   # direction-reversed: os:nextStep(A,B)="B follows A" vs p-plan:isPrecededBy(B,A)="B preceded by A"
+
+Property alignments use owl:inverseOf rather than owl:equivalentProperty because P-Plan's argument order is reversed relative to this ontology's — equivalentProperty would assert a false direction-preserving equivalence. Tradeoff noted to the user before implementing: P-Plan is a niche vocabulary (mostly scientific-workflow/provenance contexts) — real interop value only if a consumer actually has a P-Plan-aware tool/reasoner; otherwise it's a fourth external prefix with no practical payoff. User approved proceeding."""@en ;
+    schema:dateCreated "2026-08-04T00:00:00Z"^^xsd:dateTime .

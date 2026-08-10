@@ -123,6 +123,46 @@ function renderNarrative(
   const htmlParts: string[] = [];
   const sections: string[] = [];
 
+  if (narrative.synopsis) {
+    const syn = narrative.synopsis;
+    const abstract = escHtml(syn.abstract);
+    const heading = syn.headline ? escHtml(syn.headline) : "Synopsis";
+    const lo = syn.iri ? `<a href="${resolverLink(syn.iri, resolverPattern)}" target="_blank" rel="noopener noreferrer">` : "";
+    const lc = syn.iri ? "</a>" : "";
+    let inner = abstract ? `<p style="font-size:1.05rem;line-height:1.7">${abstract}</p>` : "";
+    if (syn.iri) inner += `<p style="margin-top:1rem;font-size:0.85rem">${lo}View this analysis as a KG entity${lc}</p>`;
+    htmlParts.push(makeSectionHtml("synopsis", "Synopsis", inner));
+    navLinks.push({ href: "#synopsis", label: "Synopsis" });
+    sections.push("synopsis");
+  }
+
+  narrative.sections.forEach((sec, idx) => {
+    const secId = `analysis-${idx + 1}`;
+    const secName = escHtml(sec.name);
+    const secAbstract = escHtml(sec.abstract);
+    let inner = secAbstract ? `<p style="font-size:0.98rem;line-height:1.7;color:var(--text-secondary)">${secAbstract}</p>` : "";
+    if (sec.items.length) {
+      inner += '<div class="cards-grid mt-2">';
+      for (const item of sec.items) {
+        inner +=
+          `<div class="card">` +
+          `<h3><a href="${resolverLink(item.iri, resolverPattern)}" target="_blank" rel="noopener noreferrer">${escHtml(item.name)}</a></h3>` +
+          `<p>${escHtml(item.description)}</p></div>`;
+      }
+      inner += "</div>";
+    }
+    const lo = sec.iri ? `<a href="${resolverLink(sec.iri, resolverPattern)}" target="_blank" rel="noopener noreferrer">` : "";
+    const lc = sec.iri ? "</a>" : "";
+    const titleHtml = sec.iri ? `${lo}${secName}${lc}` : secName;
+    htmlParts.push(
+      `<section class="section section-alt" id="${secId}">` +
+      `<h2>${titleHtml}<a class="headline-anchor" href="#${secId}" aria-label="Link to this section">¶</a></h2>` +
+      `${inner}</section>`
+    );
+    navLinks.push({ href: `#${secId}`, label: sec.name.slice(0, 28) });
+    sections.push(secId);
+  });
+
   if (narrative.people.length) {
     let inner = "";
     for (const p of narrative.people) {
@@ -201,41 +241,141 @@ function renderNarrative(
   return { html: htmlParts.join("\n"), navLinks, sections };
 }
 
+const KIDEHEN_WEBID = "https://www.linkedin.com/in/kidehen#this";
+const KG_GENERATOR_URL = "https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/kg-generator";
+const RDF_INFOGRAPHIC_SKILL_URL = "https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill";
+
+/**
+ * Build the embedded JSON-LD block.
+ *
+ * The KG-curation delegation chain (schema:author / accountablePerson on the
+ * document, prov:wasGeneratedBy + prov:actedOnBehalfOf on each generating
+ * agent) is always included — never opt-in. Mirrors html_assembler.py's
+ * renderJsonLd, which closed a recurring gap (5 documented occurrences in
+ * agent-rdf-memory/howto/kg-curation-attribution.ttl) where the generator
+ * shipped HTML with no delegation chain, or with prov:actedOnBehalfOf
+ * pointing at the LLM/tool itself instead of the human principal.
+ */
 function renderJsonLd(
   title: string,
   description: string,
   baseIri: string,
   rdfRelPath: string,
+  llmName = "Claude Sonnet 5",
+  llmUrl = "https://www.anthropic.com/claude",
+  principalWebid = KIDEHEN_WEBID,
 ): string {
   return JSON.stringify(
     {
-      "@context": { "@vocab": "http://schema.org/", "@language": "en" },
+      "@context": { "@vocab": "http://schema.org/", "@language": "en", prov: "http://www.w3.org/ns/prov#" },
       "@type": "Article",
       "@id": baseIri,
       headline: title,
       description,
       mainEntity: { "@type": "CreativeWork", "@id": baseIri },
       sameAs: rdfRelPath,
+      author: { "@id": principalWebid },
+      accountablePerson: { "@id": principalWebid },
+      "prov:wasGeneratedBy": [
+        {
+          "@id": `${KG_GENERATOR_URL}#this`,
+          "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+          name: "kg-generator",
+          url: KG_GENERATOR_URL,
+          "prov:actedOnBehalfOf": { "@id": principalWebid },
+        },
+        {
+          "@id": `${RDF_INFOGRAPHIC_SKILL_URL}#this`,
+          "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+          name: "rdf-infographic-skill",
+          url: RDF_INFOGRAPHIC_SKILL_URL,
+          "prov:actedOnBehalfOf": { "@id": principalWebid },
+        },
+        {
+          "@id": `${llmUrl}#this`,
+          "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+          name: llmName,
+          url: llmUrl,
+          "prov:actedOnBehalfOf": { "@id": principalWebid },
+        },
+      ],
     },
     null,
     2,
   );
 }
 
-function buildSparqlRecipes(baseIri: string): SparqlRecipe[] {
+/**
+ * Build the visible hero-meta "KG curated by ... on behalf of ..." line.
+ * Rendered by default (see assembleHtml's metaHtml handling), not left as an
+ * opt-in caller-supplied string — mirrors html_assembler.py's renderHeroMeta.
+ */
+function renderHeroMeta(
+  llmName = "Claude Sonnet 5",
+  llmUrl = "https://www.anthropic.com/claude",
+  principalName = "Kingsley Idehen",
+  principalResolver = "https://linkeddata.uriburner.com/describe/?url=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fkidehen%23this",
+): string {
+  return (
+    "KG curated by " +
+    `<a href="${KG_GENERATOR_URL}" target="_blank" rel="noopener noreferrer">kg-generator</a>, ` +
+    `<a href="${RDF_INFOGRAPHIC_SKILL_URL}" target="_blank" rel="noopener noreferrer">rdf-infographic-skill</a>, ` +
+    `and <a href="${llmUrl}" target="_blank" rel="noopener noreferrer">${llmName}</a> ` +
+    `on behalf of <a href="${principalResolver}" target="_blank" rel="noopener noreferrer">${principalName}</a>`
+  );
+}
+
+const DAV_GRAPH_BASE = "https://linkeddata.uriburner.com/DAV/demos/daas/";
+
+/**
+ * The SPARQL GRAPH/FROM IRI for a generated artifact once uploaded to
+ * URIBurner. NEVER the same as the document/base IRI (used for entity
+ * resolver links) — see the skill's "Document IRI vs SPARQL GRAPH IRI" rule.
+ */
+function computeDavGraphIri(rdfFilename: string): string {
+  return DAV_GRAPH_BASE + rdfFilename;
+}
+
+/** Canonical entity-type-summary query mandated by the Footer SPARQL Button
+ * contract: SAMPLE-based projection, GROUP BY type, no default-graph-uri
+ * URL parameter, no FILTER(STRSTARTS(...)) workaround. */
+function buildCanonicalEntitySummaryQuery(davGraphIri: string): string {
+  return (
+    "SELECT ?type (SAMPLE(?s) AS ?sampleEntity) (SAMPLE(?label) AS ?sampleLabel) (COUNT(?s) AS ?entityCount)\n" +
+    "WHERE {\n" +
+    `  GRAPH <${davGraphIri}> {\n` +
+    "    ?s a ?type .\n" +
+    "    OPTIONAL { ?s rdfs:label|<http://schema.org/name> ?label }\n" +
+    "  }\n" +
+    "}\n" +
+    "GROUP BY ?type\n" +
+    "ORDER BY DESC(?entityCount)"
+  );
+}
+
+/** href for the required <a id="sparqlBtn"> CTA. */
+function buildSparqlBtnHref(davGraphIri: string): string {
+  const query = buildCanonicalEntitySummaryQuery(davGraphIri);
+  const encoded = encodeURIComponent(query);
+  return (
+    "https://linkeddata.uriburner.com/sparql?default-graph-uri=&query=" +
+    `${encoded}&format=text%2Fx-html%2Btr&timeout=0&debug=on&run=+Run+Query+`
+  );
+}
+
+function buildSparqlRecipes(baseIri: string, davGraphIri: string): SparqlRecipe[] {
   return [
     {
       label: "All triples (sample)",
-      query: "SELECT ?s ?p ?o\nWHERE { ?s ?p ?o }\nLIMIT 25",
+      query: `SELECT ?s ?p ?o\nWHERE { GRAPH <${davGraphIri}> { ?s ?p ?o } }\nLIMIT 25`,
     },
     {
       label: "Entity types summary",
-      query:
-        "SELECT ?type (COUNT(?s) AS ?count)\nWHERE { ?s a ?type }\nGROUP BY ?type\nORDER BY DESC(?count)",
+      query: buildCanonicalEntitySummaryQuery(davGraphIri),
     },
     {
       label: "Named graph triples",
-      query: `SELECT ?s ?p ?o\nFROM <${baseIri}>\nWHERE { ?s ?p ?o }\nLIMIT 25`,
+      query: `SELECT ?s ?p ?o\nFROM <${davGraphIri}>\nWHERE { ?s ?p ?o }\nLIMIT 25`,
     },
   ];
 }
@@ -253,6 +393,8 @@ export interface AssembleHtmlOptions {
   tagline?: string;
   heroTagline?: string;
   metaHtml?: string;
+  llmName?: string;
+  llmUrl?: string;
 }
 
 export function assembleHtml(opts: AssembleHtmlOptions): boolean {
@@ -266,8 +408,13 @@ export function assembleHtml(opts: AssembleHtmlOptions): boolean {
     resolverPattern = "https://linkeddata.uriburner.com/describe/?url=",
     tagline = "",
     heroTagline = "",
-    metaHtml = "",
+    llmName = "Claude Sonnet 5",
+    llmUrl = "https://www.anthropic.com/claude",
   } = opts;
+
+  // KG-curation attribution defaults on unless the caller explicitly overrides
+  // metaHtml — see renderHeroMeta docstring for why this is not opt-in.
+  const metaHtml = opts.metaHtml || renderHeroMeta(llmName, llmUrl);
 
   const stem   = basename(rdfPath).replace(/\.[^.]+$/, "");
   const title  = titleOpt  || `Knowledge Graph Infographic — ${stem}`;
@@ -295,9 +442,11 @@ export function assembleHtml(opts: AssembleHtmlOptions): boolean {
   );
   console.log(`  Sections: ${sections.join(", ") || "(none)"}`);
 
-  const jsonldContent  = renderJsonLd(title, description, baseIri, rdfRelPath);
-  const sparqlRecipes  = buildSparqlRecipes(baseIri);
+  const jsonldContent  = renderJsonLd(title, description, baseIri, rdfRelPath, llmName, llmUrl);
+  const davGraphIri    = computeDavGraphIri(rdfFilename);
+  const sparqlRecipes  = buildSparqlRecipes(baseIri, davGraphIri);
   const defaultSparql  = sparqlRecipes[0].query;
+  const sparqlBtnHref  = buildSparqlBtnHref(davGraphIri);
   const cssContent     = loadAsset("styles.css");
   const kgExplorerJs   = loadAsset("kg_explorer.js");
   const kgdataJson     = JSON.stringify(kgdata);
@@ -322,6 +471,8 @@ export function assembleHtml(opts: AssembleHtmlOptions): boolean {
     narrative_html:  narrativeHtml,
     sparql_recipes:  sparqlRecipes,
     default_sparql:  defaultSparql,
+    dav_graph_iri:   davGraphIri,
+    sparql_btn_href: sparqlBtnHref,
     source_url:      sourceUrl,
     source_label:    sourceLabel,
   });
