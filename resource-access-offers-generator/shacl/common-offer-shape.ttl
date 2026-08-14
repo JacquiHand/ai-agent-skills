@@ -42,6 +42,14 @@
     sh:property [ sh:path schema:validFrom ; sh:minCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path schema:validThrough ; sh:minCount 1 ; sh:datatype xsd:dateTime ] ;
     sh:property [ sh:path wdrs:describedby ; sh:minCount 1 ; sh:class schema:CreativeWork ] ;
+    sh:property [
+        sh:path rdf:type ;
+        sh:qualifiedValueShape [
+            sh:pattern "^http://www\\.openlinksw\\.com/ontology/offers#.+Offer$" ;
+            sh:not [ sh:in ( oplofr:DAVOffer oplofr:DemoFileAccessOffer oplofr:DemoGraphAccessOffer oplofr:SubscriptionOffer ) ]
+        ] ;
+        sh:qualifiedMinCount 1 ;
+    ] ;
     sh:or (
       [ sh:property [ sh:path (schema:priceSpecification oplofr:interval) ; sh:maxCount 0 ] ]
       [ sh:property [ sh:path (schema:priceSpecification oplofr:interval) ; sh:minCount 1 ] ;
