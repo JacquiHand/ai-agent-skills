@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from html import escape
 from urllib.parse import quote
@@ -45,13 +46,81 @@ def make_section_html(section_id: str, title: str, inner_html: str) -> str:
     )
 
 
+# NOTE: a build_about_section()/"About This Page" mid-page section used to be
+# generated here. It was removed (not hidden) because its entire content --
+# SPARQL endpoint, skills used, LLM, Virtuoso -- duplicated the footer's
+# #footer "Attribution & Provenance" attr-grid almost line for line, stacking
+# a second attribution surface with its own "About" nav entry alongside the
+# existing "Footer" nav entry. Same stacking-a-second-surface defect already
+# recorded for the SPARQL section (preferences.ttl Step 172); the footer is
+# the one canonical attribution surface. See howto/footer-sparql-explorer-
+# gate.ttl / example-iri-anti-pattern.ttl sibling gates for the pattern.
+
+
+def build_sample_query_cards(source_code: list[dict], resolver_pattern: str) -> str:
+    """Per-query cards living INSIDE #sparql-explorer (never a separate
+    section -- see the "consolidate, don't stack a second SPARQL surface"
+    rule). SPARQL entries only; non-SPARQL entries (e.g. Cypher) cannot
+    execute via this mechanism and are excluded entirely. Each card is a
+    native <details>/<summary> accordion, CLOSED by default (no `open`
+    attribute) -- a page with several verbatim queries stacked open reads as
+    a wall of code before the reader has chosen to look at any of it. Each
+    card shows the verbatim query, a resolver-linked heading in the summary,
+    and its own Execute button that loads the query into the shared
+    workbench textarea/live-link below and opens it in one click -- genuine
+    per-query live execution, not a static read-only block."""
+    sparql_items = [i for i in source_code if i.get("language", "").upper() == "SPARQL"]
+    if not sparql_items:
+        return ""
+    cards = []
+    queries_json_data = []
+    for idx, item in enumerate(sparql_items):
+        iri = item["iri"]
+        name = escape(item["name"])
+        text_escaped = escape(item["text"])
+        comment = escape(item["comment"]) if item["comment"] else ""
+        resolver_href = make_resolver_link(iri, resolver_pattern)
+        comment_html = f'<p style="font-size:0.83rem;color:var(--text-secondary);margin-top:8px">{comment}</p>' if comment else ""
+        cards.append(
+            f'<details class="sparql-card" style="margin-bottom:12px">'
+            f'<summary class="sparql-card-header"><a href="{resolver_href}" target="_blank" rel="noopener noreferrer">{name}</a></summary>'
+            f'<div class="sparql-body">'
+            f'<pre class="sparql-code" style="white-space:pre-wrap;overflow-x:auto;padding:12px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;font-size:0.85rem;margin:8px 0"><code>{text_escaped}</code></pre>'
+            f'{comment_html}'
+            f'<div class="sparql-actions" style="margin-top:8px">'
+            f'<button class="primary" data-sample-query-index="{idx}">▶ Execute</button>'
+            f'</div>'
+            f'</div>'
+            f'</details>'
+        )
+        queries_json_data.append({"name": item["name"], "query": item["text"]})
+    heading = (
+        '<h3 style="margin-top:24px;margin-bottom:4px">Sample Queries</h3>'
+        '<p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px">'
+        "Reproduced verbatim from the companion RDF. Execute loads the query into the workbench below and runs it live.</p>"
+    )
+    data_script = f'<script type="application/json" id="sampleQueriesData">{json.dumps(queries_json_data)}</script>'
+    return heading + "".join(cards) + data_script
+
+
 def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str) -> tuple[str, list[dict]]:
-    """Extract and render narrative sections from RDF annotations."""
+    """Extract and render narrative sections from RDF annotations.
+
+    Returns (primary_html, reference_html, nav_links, sections). Primary
+    covers synopsis/analysis-sections/people/organizations and is placed
+    BEFORE the KG Explorer / SPARQL Workbench accordions in base_template.html;
+    reference covers FAQ/glossary/HowTo and is placed AFTER them. KG Explorer
+    and SPARQL Workbench are the primary way a reader interacts with the data
+    itself, so they must precede the reference material that assumes the
+    reader has already explored it — see preferences.ttl
+    step-explorerPrecedesReference / howto/explorer-precedes-reference.ttl.
+    """
     narrative = extract_narrative(rdf_path, base_iri)
     nav_links = [
         {"href": "#hero", "label": "Overview"},
     ]
     html_parts = []
+    html_parts_ref = []
     sections = []
 
     has_faq = len(narrative["faq"]) > 0
@@ -64,12 +133,27 @@ def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str)
 
     if has_synopsis:
         syn = narrative["synopsis"]
-        abstract = escape(syn["abstract"]) if syn["abstract"] else ""
+        # schema:abstract is trusted author-controlled prose, not untrusted input — rendered
+        # raw (not escaped) so RDF-authored resolver-link <a> tags and <br> paragraph breaks
+        # (the documented entity-link-in-body-prose pattern) render as real markup, not text.
+        abstract = syn["abstract"] if syn["abstract"] else ""
         iri = syn["iri"]
         heading = escape(syn["headline"]) if syn["headline"] else "Synopsis"
         link_open = f'<a href="{make_resolver_link(iri, resolver_pattern)}" target="_blank" rel="noopener noreferrer">' if iri else ""
         link_close = "</a>" if iri else ""
-        items_html = f'<p style="font-size:1.05rem;line-height:1.7">{abstract}</p>' if abstract else ""
+        # If the author already supplied full paragraph markup (starts with
+        # <p), render it as-is instead of wrapping it in a second <p> --
+        # wrapping would either nest invalid markup or leave a dangling
+        # unmatched closing </p> at the end. A single dense schema:abstract
+        # paragraph reads as an unbroken wall of text with zero visual
+        # hierarchy; multi-paragraph raw HTML (optionally starting with a
+        # <p class="lede"> for the thesis-in-one-sentence) is how a synopsis
+        # gets real readability/aesthetic structure -- see
+        # howto/synopsis-readability-cleanup.ttl.
+        if abstract.strip().startswith("<p"):
+            items_html = abstract
+        else:
+            items_html = f'<p style="font-size:1.05rem;line-height:1.7">{abstract}</p>' if abstract else ""
         if iri:
             items_html += f'<p style="margin-top:1rem;font-size:0.85rem">{link_open}View this analysis as a KG entity{link_close}</p>'
         html_parts.append(render_narrative_section("synopsis", "Synopsis", items_html))
@@ -152,8 +236,7 @@ def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str)
                 f'</div>'
             )
         items_html += "</div>"
-        html_parts.append(render_narrative_section("faq", "Frequently Asked Questions", items_html))
-        nav_links.append({"href": "#faq", "label": "FAQ"})
+        html_parts_ref.append(render_narrative_section("faq", "Frequently Asked Questions", items_html))
         sections.append("faq")
 
     if has_glossary:
@@ -170,8 +253,7 @@ def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str)
                 f'<p>{defn}</p></div>'
             )
         items_html += "</div>"
-        html_parts.append(render_narrative_section("glossary", "Glossary of Terms", items_html))
-        nav_links.append({"href": "#glossary", "label": "Glossary"})
+        html_parts_ref.append(render_narrative_section("glossary", "Glossary of Terms", items_html))
         sections.append("glossary")
 
     if has_howto:
@@ -190,17 +272,36 @@ def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str)
                 f'<p>{desc}</p></div></div>'
             )
         items_html += "</div>"
-        html_parts.append(render_narrative_section("howto", "How-To Guide", items_html))
-        nav_links.append({"href": "#howto", "label": "HowTo"})
+        html_parts_ref.append(render_narrative_section("howto", "How-To Guide", items_html))
         sections.append("howto")
 
+    # Embedded schema:SoftwareSourceCode queries are NOT rendered as their own
+    # narrative section — that would stack a second, non-interactive SPARQL
+    # surface next to the canonical #sparql-explorer workbench, which already
+    # provides the real "enables live execution" UI (editable textarea, Run,
+    # Run live, Copy). SPARQL entries are instead folded into that workbench's
+    # recipe dropdown (see assemble_html), and non-SPARQL entries (e.g. Cypher,
+    # which cannot execute via SPARQL at all) are left out of any live-query
+    # surface entirely — they remain in the RDF, resolvable via KG Explorer.
+
+    # KG Explorer / SPARQL Workbench nav entries are inserted here — between
+    # the primary content (synopsis/analysis/people/orgs) and the reference
+    # content (FAQ/glossary/HowTo) — matching the document order enforced in
+    # base_template.html (explorer-precedes-reference: preferences.ttl
+    # step-explorerPrecedesReference).
     nav_links.extend([
         {"href": "#kg-explorer", "label": "KG Explorer"},
         {"href": "#sparql-explorer", "label": "SPARQL"},
-        {"href": "#footer", "label": "Footer"},
     ])
+    if has_faq:
+        nav_links.append({"href": "#faq", "label": "FAQ"})
+    if has_glossary:
+        nav_links.append({"href": "#glossary", "label": "Glossary"})
+    if has_howto:
+        nav_links.append({"href": "#howto", "label": "HowTo"})
+    nav_links.append({"href": "#footer", "label": "Footer"})
 
-    return "\n".join(html_parts), nav_links, sections
+    return "\n".join(html_parts), "\n".join(html_parts_ref), nav_links, sections
 
 
 def render_narrative_section(section_id: str, title: str, inner_html: str) -> str:
@@ -343,14 +444,17 @@ def build_sparql_btn_href(dav_graph_iri: str) -> str:
 
 
 def build_sparql_recipes(base_iri: str, dav_graph_iri: str) -> list[dict]:
+    # Entity-type SAMPLE summary is first so #sparqlText and the footer
+    # visible pre both surface the mandated contract query by default
+    # (footer-sparql-explorer-gate.ttl / step-sparqlExplorerVisibleText).
     return [
-        {
-            "label": "All triples (sample)",
-            "query": f"SELECT ?s ?p ?o\nWHERE {{ GRAPH <{dav_graph_iri}> {{ ?s ?p ?o }} }}\nLIMIT 25",
-        },
         {
             "label": "Entity types summary",
             "query": build_canonical_entity_summary_query(dav_graph_iri),
+        },
+        {
+            "label": "All triples (sample)",
+            "query": f"SELECT ?s ?p ?o\nWHERE {{ GRAPH <{dav_graph_iri}> {{ ?s ?p ?o }} }}\nLIMIT 25",
         },
         {
             "label": "Named graph triples",
@@ -372,6 +476,7 @@ def assemble_html(
     meta_html: str = "",
     llm_name: str = "Claude Sonnet 5",
     llm_url: str = "https://www.anthropic.com/claude",
+    agent_env: str = "",
 ) -> bool:
     """Assemble a complete HTML infographic from an RDF file.
 
@@ -412,7 +517,7 @@ def assemble_html(
 
     # Render narrative
     print("Extracting narrative...")
-    narrative_html, nav_links, sections = render_narrative(rdf_path, base_iri, resolver_pattern)
+    narrative_html_primary, narrative_html_reference, nav_links, sections = render_narrative(rdf_path, base_iri, resolver_pattern)
     print(f"  Sections: {', '.join(sections)}")
 
     # Build JSON-LD
@@ -421,9 +526,23 @@ def assemble_html(
     # Build SPARQL recipes — scoped to the DAV-uploaded graph IRI, never the
     # document/base IRI (see compute_dav_graph_iri docstring).
     dav_graph_iri = compute_dav_graph_iri(rdf_filename)
+    canonical_query = build_canonical_entity_summary_query(dav_graph_iri)
     sparql_recipes = build_sparql_recipes(base_iri, dav_graph_iri)
+    embedded_sparql = extract_narrative(rdf_path, base_iri).get("source_code", [])
+    for item in embedded_sparql:
+        if item.get("language", "").upper() == "SPARQL":
+            sparql_recipes.append({"label": item["name"], "query": item["text"]})
     default_sparql = sparql_recipes[0]["query"]
     sparql_btn_href = build_sparql_btn_href(dav_graph_iri)
+    sample_query_cards_html = build_sample_query_cards(embedded_sparql, resolver_pattern)
+
+    # Accordion summary stat badges (section-accordion aesthetics pass) — computed
+    # at build time so the collapsed KG Explorer / SPARQL Workbench bars preview
+    # scale before the reader opens them, instead of a bare "Show ▼" label.
+    kg_node_count = len(kgdata["nodes"])
+    kg_link_count = len(kgdata["links"])
+    sparql_query_count = len([i for i in embedded_sparql if i.get("language", "").upper() == "SPARQL"])
+    sparql_query_label = f"{sparql_query_count} sample quer{'y' if sparql_query_count == 1 else 'ies'}"
 
     # Load assets
     css_content = load_asset("styles.css")
@@ -432,7 +551,9 @@ def assemble_html(
     # Serialize kgData
     kgdata_json = json.dumps(kgdata, separators=(",", ":"))
 
-    # Template context
+    # Template context — footer uses llm_name/llm_url/agent_env/generation_date
+    # so stock output matches prior-artifact-footer-polish-gate (not anomalyco /
+    # "RDF Infographic Generator v1" placeholders).
     context = {
         "title": title,
         "description": description,
@@ -448,13 +569,24 @@ def assemble_html(
         "kgdata_json": kgdata_json,
         "kg_explorer_js": kg_explorer_js,
         "nav_links": nav_links,
-        "narrative_html": narrative_html,
+        "narrative_html_primary": narrative_html_primary,
+        "narrative_html_reference": narrative_html_reference,
         "sparql_recipes": sparql_recipes,
         "default_sparql": default_sparql,
         "dav_graph_iri": dav_graph_iri,
         "sparql_btn_href": sparql_btn_href,
+        "canonical_query": canonical_query,
+        "sample_query_cards_html": sample_query_cards_html,
+        "kg_node_count": kg_node_count,
+        "kg_link_count": kg_link_count,
+        "sparql_query_count": sparql_query_count,
+        "sparql_query_label": sparql_query_label,
         "source_url": source_url,
         "source_label": source_label,
+        "llm_name": llm_name,
+        "llm_url": llm_url,
+        "agent_env": agent_env,
+        "generation_date": date.today().isoformat(),
     }
 
     # Render template

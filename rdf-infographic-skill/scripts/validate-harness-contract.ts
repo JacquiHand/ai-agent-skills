@@ -155,6 +155,53 @@ async function main(): Promise<number> {
   require(html, "https://linkeddata.uriburner.com/sparql", "URIBurner SPARQL endpoint missing");
   require(html, "https://virtuoso.openlinksw.com/", "OpenLink Virtuoso attribution missing");
 
+  // Responsive head-to-head comparison dual presentation (SKILL.md harness item 15).
+  // Conditional: only when a multi-column comparison matrix is present.
+  const hasResponsiveFlag =
+    html.includes('data-comparison-layout="responsive"') ||
+    html.includes("data-comparison-layout='responsive'");
+  const theadBlocks = [
+    ...html.matchAll(
+      /<table[^>]*class="[^"]*comparison-table[^"]*"[^>]*>[\s\S]*?<thead>([\s\S]*?)<\/thead>/gi,
+    ),
+  ];
+  let multiCol = theadBlocks.some((m) => (m[1].match(/<th\b/gi) || []).length >= 3);
+  if (!multiCol && /class="[^"]*comparison-table[^"]*"/.test(html)) {
+    const tbl = html.match(
+      /<table[^>]*class="[^"]*comparison-table[^"]*"[^>]*>([\s\S]*?)<\/table>/i,
+    );
+    if (tbl && (tbl[1].match(/<th\b/gi) || []).length >= 3) multiCol = true;
+  }
+  if (multiCol || hasResponsiveFlag) {
+    requireAny(
+      html,
+      ['comparison-table-view', 'data-comparison-layout="responsive"'],
+      "Multi-column comparison matrix missing .comparison-table-view wrapper (responsive dual presentation)",
+    );
+    requireAny(
+      html,
+      ['comparison-cards-view', 'class="comp-card"', "class='comp-card'"],
+      "Multi-column comparison matrix missing phone cards (.comparison-cards-view / .comp-card) — table-only horizontal scroll is not sufficient",
+    );
+    requireAny(
+      html,
+      ['max-width: 900px', 'max-width:900px', '@media(max-width:900px)', '@media (max-width: 900px)'],
+      "Responsive comparison breakpoint (max-width: 900px) missing — cards must show on phones",
+    );
+    // First-column aspect labels must be resolver-linked to TTL dimension entities
+    const aspectLinked =
+      /<(?:td)[^>]*class="[^"]*(?:td-aspect|td-dim)[^"]*"[^>]*>\s*<a[^>]+href="[^"]*describe\/\?url=/i.test(
+        html,
+      ) ||
+      /class="comp-row-label"\s*>\s*<a[^>]+href="[^"]*describe\/\?url=/i.test(html);
+    if (!aspectLinked) {
+      fail(
+        "Comparison aspect/dimension labels are not resolver-linked — first column of each table row " +
+          "(and card .comp-row-label) MUST link via describe/?url= to ComparisonDimension/DefinedTerm IRIs from the companion TTL",
+      );
+    }
+  }
+
   // ── KG-curation attribution (agent-rdf-memory/howto/kg-curation-attribution.ttl) ──
   // Documented as a recurring miss (5 occurrences); this is a blocking gate now,
   // not just memory/grep discipline.

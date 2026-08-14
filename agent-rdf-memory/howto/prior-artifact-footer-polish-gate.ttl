@@ -1,0 +1,174 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Prior-Artifact Footer and Post-Generator Polish Gate"@en ;
+    schema:description "Blocking pre-delivery protocol that forces lookup of the most recent same-model HTML infographic under the model-specific webpages/ root, treats its footer and other post-generator polish as the aesthetic baseline, and forbids declaring delivery complete on generate_infographic.py (or equivalent) stock output when harness PASS alone is green. Why this exists: 2026-08-11 Grok 4.5 SynthID-Text collection regenerated stock footer defects (wrong skill GitHub org, wrong generation-environment labels, bare explore CTA, missing prose Generated-using line, long-path overflow, incomplete named-graph cards) that had already been polished the same day on coding-agent-harness-comparison-pi-opencode-claude-codex-grok-4-5-1.html. Soft rules already covered study-prior and generator-not-substitute, but no blocking gate forced artifact open + footer diff before delivery."@en ;
+    schema:dateCreated "2026-08-11T22:10:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-11T22:30:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :priorArtifactFooterPolishGate ;
+    rdfs:seeAlso <../preferences.ttl#step-priorArtifactFooterPolishGate>,
+        <../preferences.ttl#step-studyPriorPatterns>,
+        <../preferences.ttl#step-generatorScriptNotSubstituteForChecklist>,
+        <../preferences.ttl#step-progressiveContextLoading>,
+        <../preferences.ttl#step-rdfInfographicGateEnforcement>,
+        <../preferences.ttl#step-attribution>,
+        <../preferences.ttl#step-footerCardOverflow>,
+        <study-prior-patterns.ttl>,
+        <generator-script-output-not-a-substitute-for-contract-check.ttl>,
+        <kg-explorer-reuse-first.ttl>,
+        <infographic-authoring.ttl>,
+        <kg-curation-attribution.ttl>,
+        <footer-sparql-explorer-gate.ttl> .
+
+:priorArtifactFooterPolishGate a schema:HowTo ;
+    schema:name "Prior-artifact footer and post-generator polish gate"@en ;
+    schema:description "After any HTML generation path that uses rdf-infographic-skill's generate_infographic.py, html_assembler, or equivalent stock shell — and before calling the deliverable done — open the newest prior working HTML under the active model's webpages/ directory, catalog its footer and related post-generator polish, port those patterns to the new file, and re-validate. Harness PASS alone is not sufficient."@en ;
+    schema:step :step-whenApplies,
+        :step-resolveWebpagesRoot,
+        :step-selectBaselineHtml,
+        :step-catalogBaselineSurfaces,
+        :step-diffAndPort,
+        :step-stockDefectBlockers,
+        :step-safeEditDiscipline,
+        :step-revalidate,
+        :step-recordInSession ;
+    schema:workExample :workExample-synthidRegression20260811 .
+
+# ── Steps ────────────────────────────────────────────────────────────────────
+
+:step-whenApplies a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Apply this gate to every RDF+HTML infographic delivery, especially after stock generators"@en ;
+    schema:text """This gate is BLOCKING whenever the task produces or regenerates an HTML infographic under the active model's webpages/ root — whether via generate_infographic.py, html_assembler.py, a harness helper, a hand-edited shell, or a mix.
+
+Always apply when any of the following is true:
+1. generate_infographic.py (or equivalent assembler) wrote or rewrote the HTML.
+2. validate-harness-contract.py is part of the delivery checklist.
+3. The task is an RDF+HTML (optional MD) collection under kg-generator → rdf-infographic-skill.
+
+Do not skip because: harness already PASSed; the generator printed 'PASS'; the task did not use the word 'infographic'; or no prior session was loaded at session start (progressive loading still requires task-time prior-artifact open)."""@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerSkillInvocation .
+
+:step-resolveWebpagesRoot a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Resolve the active model webpages/ directory from the model identity gate"@en ;
+    schema:text """Resolve the scan root from the active LLM model ID (system prompt), not from agent environment name:
+  {LLM_ROOT}/{model-specific}/webpages/
+Examples: Grok → {LLM_ROOT}/Grok/webpages/; Claude → {LLM_ROOT}/Claude Generated/webpages/; GPT-5 Chat Codex → {LLM_ROOT}/GPT5-Chat-Generated/webpages/; Big Pickle → {LLM_ROOT}/Big Pickle/webpages/.
+
+If the directory does not exist or is empty of .html files, record that fact in session memory and fall back to the canonical competitive template under rdf-infographic-skill/assets/templates/ plus prefs :step-attribution and footer-sparql-explorer-gate.ttl — do not invent aesthetics from memory alone."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-outputDirs>,
+        <../preferences.ttl#step-modelOverEnvironment>,
+        <artifact-routing.ttl> .
+
+:step-selectBaselineHtml a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Select the newest prior working HTML as aesthetic baseline (exclude the file being delivered)"@en ;
+    schema:text """List *.html in the resolved webpages/ directory by mtime (newest first). Exclude:
+  - the current delivery target stem if already written
+  - obvious non-infographic pages (indexes, pure API docs) when they lack footer-attribution / kg-explorer / sparqlBtn
+
+Take the newest remaining file that looks like a full RDF infographic (prefer presence of id="footer" or class="footer-attribution", sparqlBtn, and either kg-explorer or kgData). That file is the baseline.
+
+If the same calendar day already produced a polished artifact for this model, prefer that day's newest polished file over older corpus pages."""@en .
+
+:step-catalogBaselineSurfaces a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Catalog footer and related post-generator polish surfaces from the baseline"@en ;
+    schema:text """Open the baseline HTML and catalog at least these surfaces (CSS + markup + visible strings):
+1. Footer shell — footer-inner / footer-kicker / footer-lead / attr-grid / attr-card / soft-list / path-chip.
+2. Explore CTA — footer-explore card, sparqlBtn, collapsible SAMPLE query (footer-sample), not a bare always-open pre alone.
+3. Skills attribution — prose <p class="footer-skills"> (or equivalent) 'Generated using … via {LLM} … URIBurner (Virtuoso-backed)'; skill hrefs must be OpenLinkSoftware/ai-agent-skills GitHub trees, never anomalyco/opencode-skills.
+4. Generation environment card — active model name + product URL + agent environment, not stock 'RDF Infographic Generator v1' / bare Python+Jinja as the primary credit.
+5. Named graphs card — document-base namespace + DAV load target (DAV/demos/daas/{stem}.ttl), not fabricated or truncated IRIs.
+6. Overflow safety — min-width:0 on cards/grid participants; overflow-wrap:anywhere / word-break:break-word on long path/IRI text.
+7. Hero-meta 'KG curated by … on behalf of Kingsley Idehen' when the page has a hero-meta line (per kg-curation-attribution.ttl).
+8. Any other post-generator polish already present on the baseline that prefs mark as standing (nav inactivity fade, etc.) — at minimum record whether the baseline has it so stock omissions are visible.
+
+This step is the forced prior-artifact open that study-prior-patterns and progressive-context-loading intend but do not enforce as a delivery blocker."""@en ;
+    rdfs:seeAlso <study-prior-patterns.ttl>,
+        <kg-curation-attribution.ttl>,
+        <../preferences.ttl#step-attribution>,
+        <../preferences.ttl#step-footerCardOverflow> .
+
+:step-diffAndPort a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Diff the new HTML against the baseline catalog and port missing polish before delivery"@en ;
+    schema:text """For each cataloged surface, check the new HTML for presence and correct content. Port surgically:
+  - Prefer adapting baseline CSS/markup patterns with current stem, source URL, DAV graph IRI, and model labels substituted.
+  - Do not rewrite the whole page when only the footer (or hero-meta) is stock.
+  - Preserve harness-required IDs (sparqlBtn, sparql-explorer when present, kg-explorer, etc.).
+  - Keep skill product links on canonical OpenLinkSoftware GitHub paths; keep LLM/product links on official homepages (not resolver URLs).
+
+If the new file was just produced by generate_infographic.py, assume stock footer/hero gaps until the catalog check proves otherwise — never assume the generator absorbed last session's manual polish."""@en .
+
+:step-stockDefectBlockers a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "Treat these stock-generator greps as hard delivery blockers"@en ;
+    schema:text """Before calling the HTML done, the following greps MUST fail (zero matches) unless the user explicitly waived a specific item:
+1. github.com/anomalyco/opencode-skills  — wrong skill org
+2. RDF Infographic Generator v1  — stock generation-environment primary credit (when a real LLM/agent credit is required)
+3. Missing prose attribution: no 'Generated using' near the footer skills line when skills were used
+4. Missing OpenLinkSoftware/ai-agent-skills skill links when kg-generator or rdf-infographic-skill were used
+5. Named-graphs card pointing at bare or wrong hosts (e.g. only http://dbpedia.org/resource/ with no DAV/demos/daas/{stem}) when a DAV graph IRI is the contract target
+6. Long path/IRI text in footer cards without overflow-wrap/anywhere or path-chip-style wrapping
+
+Also require positive greps (at least one match) when applicable:
+  - OpenLinkSoftware/ai-agent-skills/tree/main/kg-generator and/or rdf-infographic-skill
+  - Active model product label or URL (e.g. Grok / x.ai, Claude / anthropic.com) in generation environment or prose line
+  - footer-explore or equivalent structured explore CTA when sparqlBtn is present
+  - DAV/demos/daas/ in named-graph or sparql GRAPH context for the delivery stem
+
+Harness PASS does not clear these blockers."""@en .
+
+:step-safeEditDiscipline a schema:HowToStep ;
+    schema:position 7 ;
+    schema:name "When rewriting the footer section, use depth-bounded section replace — never a naive non-greedy regex that can truncate trailing scripts"@en ;
+    schema:text """Footer rewrites must preserve everything after the footer (embedded kgData scripts, JSON-LD, </body></html>). Procedure:
+1. Locate start = index of '<section class="footer-attribution" id="footer">' (or the page's actual footer section open tag).
+2. Walk forward with a section open/close depth counter until depth returns to zero; that end index is the exclusive footer end.
+3. Replace only html[start:end].
+4. After write, assert file still contains kgData (or the page's graph payload marker), forceSimulation or the page's explorer marker when KG Explorer is in scope, and '</html>'.
+5. If any of those are missing, restore from the pre-edit file or regenerate, then retry with the depth-walk method.
+
+Do not use a single re.S non-greedy '.*?</section>' replace on the whole document without verifying the tail length remains large enough to hold scripts."""@en .
+
+:step-revalidate a schema:HowToStep ;
+    schema:position 8 ;
+    schema:name "Re-run harness validation after polish — harness PASS remains necessary, not sufficient"@en ;
+    schema:text """After porting polish:
+1. Run validate-harness-contract.py against the HTML (+ companion TTL/JSON-LD when available) and require 0 failures.
+2. Re-run the stock-defect blocker greps from :step-stockDefectBlockers.
+3. Optionally load in a real browser per step-mustBrowserVerifyNotJustGrep / generator-script howto when KG Explorer is present.
+
+Delivery is blocked until (1) and (2) both pass. (1) alone is never enough."""@en ;
+    rdfs:seeAlso <../preferences.ttl#step-rdfInfographicGateEnforcement>,
+        <../preferences.ttl#step-generatorScriptNotSubstituteForChecklist>,
+        <generator-script-output-not-a-substitute-for-contract-check.ttl> .
+
+:step-recordInSession a schema:HowToStep ;
+    schema:position 9 ;
+    schema:name "Record baseline path and polish actions in session memory"@en ;
+    schema:text """In the session TTL for this task, record:
+  - schema:description or a dedicated Action noting the baseline HTML path used
+  - whether stock footer was replaced
+  - harness re-PASS after polish
+This makes the next same-model delivery able to find the newest polished baseline via session index as well as filesystem mtime."""@en .
+
+# ── Worked example ───────────────────────────────────────────────────────────
+
+:workExample-synthidRegression20260811 a schema:CreativeWork ;
+    schema:name "Worked example — SynthID-Text footer regression (2026-08-11)"@en ;
+    schema:description """Baseline: {LLM_ROOT}/Grok/webpages/coding-agent-harness-comparison-pi-opencode-claude-codex-grok-4-5-1.html (polished footer-explore, footer-sample, path-chip, OpenLinkSoftware skill URLs, Grok 4.5 generation environment, prose Generated-using line).
+
+Stock delivery: scalable-watermarking-llm-synthid-text-grok_4_5-1.html from generate_infographic.py — anomalyco skill URLs, 'RDF Infographic Generator v1', bare sparqlBtn + always-open pre, incomplete named graphs, no footer-skills prose. Harness PASS did not catch any of this.
+
+Correct close: regenerate if corrupted, depth-walk footer replace from baseline patterns with SynthID stem/DAV/source substituted, re-run harness, confirm blocker greps clean.
+
+Generator bake-in (2026-08-11 follow-up): rdf-infographic-skill/scripts/templates/{base_template.html,styles.css} and html_assembler.py now emit the polished footer by default (OpenLinkSoftware skill URLs, llm_name/llm_url/agent_env generation environment, footer-explore + always-visible SAMPLE pre#sparql-explorer-code with Copy, path-chip overflow, DAV named graphs, prose Generated-using line). Regression 2026-08-11: first bake-in put SAMPLE inside a closed <details>, which failed footer-sparql-explorer-gate.ttl (visible pre required, not href-only and not collapsed-only) — fixed by always-visible sparql-block + workbench default recipe = entity-type SAMPLE summary. Stock generate_infographic.py output must still pass :step-stockDefectBlockers; the agent gate remains as defense-in-depth when templates regress."""@en ;
+    schema:about :priorArtifactFooterPolishGate .

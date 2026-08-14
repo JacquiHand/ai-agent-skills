@@ -47,6 +47,8 @@ def main() -> int:
                         help="Executing LLM/model name for the KG-curation attribution line (default: Claude Sonnet 5)")
     parser.add_argument("--llm-url", default="https://www.anthropic.com/claude",
                         help="Executing LLM's canonical product page (default: https://www.anthropic.com/claude)")
+    parser.add_argument("--agent-env", default="",
+                        help="Optional agent/runtime environment label for footer generation-environment card (e.g. 'Grok CLI (Grok Build TUI)')")
 
     args = parser.parse_args()
 
@@ -68,6 +70,7 @@ def main() -> int:
         resolver_pattern=args.resolver_pattern,
         llm_name=args.llm_name,
         llm_url=args.llm_url,
+        agent_env=args.agent_env,
     )
 
     return 0 if success else 1

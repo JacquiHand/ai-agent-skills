@@ -18,7 +18,9 @@
 :step1 a schema:HowToStep ;
     schema:position 1 ;
     schema:name "Query memory for prior infographic files"@en ;
-    schema:text "Query index.ttl and session files in agent-rdf-memory/sessions/ for infographic HTML output files from the same LLM+agent, filtered by 'rdf-infographic-skill' or 'kg-generator' in the provenance chain. Identify the most recent working output that was delivered to the user."@en .
+    schema:text "Query index.ttl and session files in agent-rdf-memory/sessions/ for infographic HTML output files from the same LLM+agent, filtered by 'rdf-infographic-skill' or 'kg-generator' in the provenance chain. Identify the most recent working output that was delivered to the user. For delivery-time footer and post-generator polish, also apply the blocking gate in howto/prior-artifact-footer-polish-gate.ttl (preferences.ttl#step-priorArtifactFooterPolishGate): open the newest same-model file under {LLM_ROOT}/…/webpages/ and port its polished surfaces before calling harness PASS sufficient."@en ;
+    rdfs:seeAlso <prior-artifact-footer-polish-gate.ttl>,
+        <../preferences.ttl#step-priorArtifactFooterPolishGate> .
 
 :step2 a schema:HowToStep ;
     schema:position 2 ;

@@ -1,0 +1,62 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Every Sample SPARQL Query Must Be Self-Contained — PREFIX, Dataset Scope, DISTINCT, and Verified Reasoning Pragmas"@en ;
+    schema:description "Caught 2026-08-13 when a user ran a documented sample query (:c1/demoQ1's CONSTRUCT) live against linkeddata.uriburner.com and it failed with Virtuoso Error SP030 'Undefined default namespace prefix' — every one of the 12 :correctedSparql fields and 8 demoQ SoftwareSourceCode entries in the source document used bare `:something` prefixed names with no PREFIX declaration in the query text itself. Companion to preferences.ttl Step 195."@en ;
+    schema:dateCreated "2026-08-13T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :sparqlSelfContainment ;
+    rdfs:seeAlso <../preferences.ttl#step-sparqlSampleQuerySelfContainment>,
+        <virtuoso-workbench-query-dedup.ttl>,
+        <example-iri-anti-pattern.ttl> .
+
+:sparqlSelfContainment a schema:HowTo ;
+    schema:name "Self-contained, verified, deterministic sample SPARQL queries"@en ;
+    schema:description "A SPARQL query submitted over HTTP is NOT the same execution context as the Turtle document it was copied from — it does not inherit that document's @prefix/@base declarations, its named graph, or any reasoning configuration. Every one of these must be made explicit in the query text, and every claim about what a query returns must be empirically verified against the live target, not assumed from the RDF pattern alone."@en ;
+    schema:step :step-prefixRule, :step-datasetScopeRule, :step-distinctRule, :step-reasoningPragmaRule, :step-fuxiCompanionRule, :step-verifyLiveRule, :step-incident .
+
+:step-prefixRule a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Rule: every SPARQL query text containing a prefixed name (`:foo`, `rdf:foo`, `prov:foo`, `owl:foo`, ...) MUST declare that prefix with its own PREFIX line — the source Turtle document's @prefix declarations do not carry over"@en ;
+    schema:text "A Turtle document's `@prefix : <...>` establishes a prefix binding for THAT document's own parse. Copying `:beethovenNinthComposition` out of that document into a SPARQL query string and submitting it over HTTP to an endpoint gives the SPARQL processor no way to know what `:` means — SPARQL 1.1 grammar requires every prefix used in a query to be declared via a `PREFIX` clause inside that same query. Omitting it is not a stylistic choice, it is an undefined-prefix syntax error on strict processors (verified: Virtuoso returns 'Error SP030: SPARQL compiler ... Undefined default namespace prefix')."@en .
+
+:step-datasetScopeRule a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Rule: a query meant to run against a specific loaded dataset should use FROM <the-actual-DAV-graph-IRI> explicitly rather than relying on an endpoint's default (empty default-graph-uri) behavior — except when the query's whole point is cross-graph reasoning"@en ;
+    schema:text "Per the existing corpus rule (virtuoso-workbench-query-dedup.ttl / preferences.ttl Step 41), scope workbench queries to the DAV graph IRI the document was actually uploaded to (`https://linkeddata.uriburner.com/DAV/demos/daas/{filename}` — confirmed by asking the live endpoint 'SELECT DISTINCT ?g WHERE { GRAPH ?g { :known-subject ?p ?o } }', not assumed), not the source document's own base IRI and not left unscoped. The one exception: a query specifically demonstrating cross-graph entailment (e.g. an owl:sameAs identity bridge to an externally-cached DBpedia assertion) must NOT add a FROM restriction, because doing so would exclude the very external graph the entailment needs to reach — see :step-reasoningPragmaRule. A document arguing FOR RDF's determinism should never itself rely on 'whatever the endpoint defaults to when no graph is specified' — that is exactly the kind of implementation-defined vagueness the argument is refuting."@en .
+
+:step-distinctRule a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Rule: every SELECT sample query gets DISTINCT as a standing safety default (per existing corpus rule), even when the author doesn't expect duplicates"@en ;
+    schema:text "Reification patterns, OPTIONAL clauses, and especially reasoning-enabled queries (see :step-reasoningPragmaRule) can all produce duplicate bindings the author didn't anticipate at authoring time. DISTINCT costs nothing when there would have been no duplicates anyway, and prevents a confusing 'why are there two identical rows' moment when there would have been. This was already standing policy (preferences.ttl Step 41) before this incident; the gap was simply that none of this document's 20 sample queries applied it."@en .
+
+:step-reasoningPragmaRule a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Rule: a query claiming to demonstrate OWL/RDFS entailment MUST actually enable that entailment and be empirically verified both with and without it — never assume a reasoner is on by default, and never assume one Virtuoso pragma covers every entailment type"@en ;
+    schema:text "Virtuoso does not apply OWL/RDFS reasoning to a plain query by default. `DEFINE input:same-as \"yes\"` (no ruleset name required) specifically enables owl:sameAs-based reasoning and was empirically verified 2026-08-13: an ASK for an entailed rdf:type returned false without the pragma and true with it, against the same live dataset. owl:equivalentClass entailment is a DIFFERENT mechanism — verified the same day that `input:same-as` does NOT trigger it (the equivalent-class ASK returned false both with and without the pragma); that entailment requires a server-side registered ruleset via Virtuoso's `rdfs_rule_set()` stored procedure, which is an admin/SQL operation unreachable from a plain SPARQL HTTP query, so no working pragma-only recipe was claimed for it — the document says so explicitly rather than presenting an untested claim as fact."@en .
+
+:step-fuxiCompanionRule a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Rule: pair every Virtuoso-specific reasoning pragma with a portable FuXi N3 rule expressing the same entailment, so the demonstration isn't tied to one vendor's query-level extension"@en ;
+    schema:text "For owl:sameAs type-propagation: `{ ?x owl:sameAs ?y . ?y a ?C } => { ?x a ?C } .` and its symmetric counterpart. For owl:equivalentClass: `{ ?C1 owl:equivalentClass ?C2 . ?x a ?C1 } => { ?x a ?C2 } .` and its symmetric counterpart. These run on any N3-aware reasoner (FuXi, EYE, cwm) without server-side configuration, and were requested explicitly by the user as a required companion to the Virtuoso-pragma variant, not an optional extra."@en .
+
+:step-verifyLiveRule a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "Rule: 'the SPARQL pattern looks correct' is not verification — every sample query claiming to be runnable against a live dataset must actually be run against that live dataset, with the row/boolean result checked against what the surrounding prose claims it returns"@en ;
+    schema:text "Caught in this same incident: :demoQ8 was originally written to 'return :claim42's identity' but the WHERE pattern had no filter restricting it to that one claim — run live, it actually returned 4 rows (every reified claim carrying prov:wasAttributedTo), silently contradicting its own comment. Fixed by adding `BIND(:claim42 AS ?claim)` and re-verifying exactly one row. A query that parses and 'looks like' it does what the prose says is not the same as a query that was executed and produced that exact result — for a document whose entire argument rests on RDF/SPARQL correctness, every runnable claim must clear this higher bar."@en .
+
+:step-incident a schema:HowToStep ;
+    schema:position 7 ;
+    schema:name "Incident summary — 2026-08-13, all 20 sample query fields fixed in one pass, all empirically verified against the user's own live-loaded dataset"@en ;
+    schema:text "User reported a failing live query URL, asked whether it understood the fix before proceeding (per this session's established confirm-before-acting pattern), then added two more requirements mid-fix: a Virtuoso sameAs-pragma-plus-FuXi variant for the identity-entailment query, and 'ensure the correct sample data is in the TTL that I uploaded' — which required querying the live endpoint to discover the actual uploaded graph IRI, diff the live triples against the local reference file (rdflib set-difference: only 2 Virtuoso-injected DAV-resource-type triples differed, zero content drift), THEN apply and individually re-verify all 20 query fixes live before regenerating the HTML."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified .
+
+:step-rdfStarNotVerified a schema:HowToStep ;
+    schema:position 8 ;
+    schema:name "Rule: RDF-star/RDF 1.2 quoted-triple syntax (<<s p o>> and the finalized <<( s p o )>>) is NOT safe to claim as 'Virtuoso supports this' without testing it against the SPECIFIC endpoint in use — general product capability and per-endpoint SPARQL-parser behavior are different claims"@en ;
+    schema:text "Caught 2026-08-13 in a follow-up to the same incident, prompted by the user asking 'why do you have <<:Beethoven :composed :NinthSymphony>> :speechAct :INFORM?' -- neither RDF-star syntax variant had actually been tested; both returned 'Virtuoso 37000 Error SP030: syntax error' when finally run against the live endpoint. Two :correctedSparql fields (:c6, :c10) and multiple reasoningEngine/FAQ/glossary/HowTo prose passages had asserted 'Virtuoso's RDF 1.2 (RDF-star) support stores the quoted triple...' as an unqualified, unverified fact, propagated across the document by copy/adaptation rather than independently checked each time. Fixed by: (1) replacing both :correctedSparql fields with the already-verified rdf:Statement reification query, matching the working demoQ7 pattern; (2) keeping the RDF-star Turtle as an illustrative 'what the spec intends' form but adding an explicit dated verification note that it errors on this endpoint; (3) sweeping every other RDF-star mention in the document (FAQ q6/q10, two HowTo steps, the termVirtuosoQuadStore and termRdfStar glossary entries) and softening each from an unconditional 'use RDF-star' claim to 'reification (verified) or RDF-star where the endpoint supports it.' General rule: a claim about what a NAMED PRODUCT supports is not verified by a claim about what the SPECIFICATION says the product's later version intends to support, or by a general reputation the product has for standards support — test the exact syntax against the exact endpoint the document links to, the same discipline already applied to the input:same-as and rdfs_rule_set() pragma claims earlier in this incident."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified .

@@ -66,6 +66,20 @@ def extract_label(uri: URIRef, g: Graph) -> str:
     return shorten(uri, g)
 
 
+def _truncate_at_word_boundary(text: str, limit: int = 600) -> str:
+    """Truncate to `limit` chars at a word boundary with a visible ellipsis,
+    never mid-word with no indication. A silent [:N] slice cuts words in
+    half (e.g. '...the nine SP' where the source said 'SPARQL') and gives
+    the reader no signal that anything was cut -- it reads as a typo or a
+    generation bug, not an intentional length limit. See
+    howto/card-description-truncation-gate.ttl."""
+    text = str(text)
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0]
+    return cut.rstrip(",.;:—- ") + "…"
+
+
 def extract_description(uri: URIRef, g: Graph) -> str:
     """Extract description/comment/body text for a URI.
 
@@ -74,11 +88,11 @@ def extract_description(uri: URIRef, g: Graph) -> str:
     which carries the actual content and must not be dropped).
     """
     for desc in g.objects(uri, RDFS.comment):
-        return str(desc)[:400]
+        return _truncate_at_word_boundary(desc)
     for desc in g.objects(uri, SCHEMA.description):
-        return str(desc)[:400]
+        return _truncate_at_word_boundary(desc)
     for desc in g.objects(uri, SCHEMA.text):
-        return str(desc)[:400]
+        return _truncate_at_word_boundary(desc)
     return ""
 
 
@@ -165,6 +179,7 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
         "people": [],
         "organizations": [],
         "sections": [],
+        "source_code": [],
     }
 
     # Synopsis: the main article/report entity — prefer schema:Article, then
@@ -338,7 +353,20 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
 
             # Children: entities that declare schema:isPartOf this section
             # (schema:hasPart / schema:itemListElement give the same set via
-            # the inverse-relationship contract), excluding media objects.
+            # the inverse-relationship contract), excluding media objects AND
+            # schema:SoftwareSourceCode. The latter exclusion mirrors the
+            # top-level SoftwareSourceCode skip further below (see its comment):
+            # a query/code entity nested under an arbitrary container section
+            # (e.g. a "Demo Instance Data and SPARQL Queries" section wrapping
+            # several SPARQL recipes) would otherwise render as a second,
+            # non-interactive, read-only card duplicating the exact same query
+            # that already appears as a live Execute card in the canonical
+            # #sparql-explorer workbench below it — the container-nesting case
+            # slips past that guard because it checks top-level rdf:type
+            # SoftwareSourceCode subjects, not schema:hasPart children of an
+            # unrelated section. Caught 2026-08-12 on a document whose "Demo
+            # Instance Data and SPARQL Queries" section duplicated its own
+            # SPARQL Workbench sample-query cards one-for-one.
             child_iris = set(g.subjects(SCHEMA.isPartOf, part))
             child_iris |= set(g.objects(part, SCHEMA.hasPart))
             child_iris |= set(g.objects(part, SCHEMA.itemListElement))
@@ -347,7 +375,7 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
                 if not isinstance(child, URIRef) or child == part:
                     continue
                 child_types = set(g.objects(child, RDF.type))
-                if child_types & {SCHEMA.ImageObject, SCHEMA.VideoObject, SCHEMA.AudioObject}:
+                if child_types & {SCHEMA.ImageObject, SCHEMA.VideoObject, SCHEMA.AudioObject, SCHEMA.SoftwareSourceCode}:
                     continue
                 c_name = extract_label(child, g)
                 if not c_name:
@@ -375,6 +403,38 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
                     "iri": str(part),
                     "items": children,
                 })
+
+    # Source-code / query entities (e.g. SPARQL, Cypher) — rendered as their
+    # own accordion showcase, not just left invisible inside a nested
+    # schema:hasPart chain the shallow section renderer can't reach.
+    for code in g.subjects(RDF.type, SCHEMA.SoftwareSourceCode):
+        name = extract_label(code, g) or ""
+        lang = ""
+        for l in g.objects(code, SCHEMA.programmingLanguage):
+            lang = str(l)
+            break
+        text = ""
+        for t in g.objects(code, SCHEMA.text):
+            text = str(t)
+            break
+        if not text:
+            continue
+        comment = ""
+        for c in g.objects(code, RDFS.comment):
+            comment = str(c)
+            break
+        target = ""
+        for tg in g.objects(code, SCHEMA.target):
+            target = str(tg)
+            break
+        result["source_code"].append({
+            "name": name or lang or "Query",
+            "language": lang,
+            "text": text,
+            "comment": comment,
+            "target": target,
+            "iri": str(code),
+        })
 
     return result
 

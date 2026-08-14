@@ -171,6 +171,14 @@ def main() -> int:
     require_any(html, ['theme-toggle', 'id="theme-btn"', 'themeCycle', 'toggleTheme'], "Page theme toggle missing", failures)
 
     require_any(html, ['id="kg-explorer"', 'id="kg"', 'Knowledge Graph Explorer'], "KG Explorer missing", failures)
+    # KG Explorer / SPARQL Workbench are always-visible sections, NOT wrapped
+    # in a section-level <details> accordion (removed 2026-08-12 per explicit
+    # user request — the collapsed-by-default treatment was itself flagged as
+    # unwanted, superseding the prior aesthetics-motivated accordion rule).
+    # Individual .sparql-card sample-query accordions inside the workbench are
+    # unaffected and still closed-by-default.
+    forbid_regex(html, re.escape('<details class="section-accordion" id="kg-explorer-accordion">'), "KG Explorer must NOT be wrapped in a section-level accordion (removed by explicit user request)", failures)
+    forbid_regex(html, re.escape('<details class="section-accordion" id="sparql-explorer-accordion">'), "SPARQL Workbench must NOT be wrapped in a section-level accordion (removed by explicit user request)", failures)
     require_any(html, ['id="kgControlsToggle"', 'id="nav-toggle"', 'btn-basic', 'btn-advanced'], "KG controls/mode controls missing", failures)
     require_any_regex(html, [r'id="kgToolbar" hidden', r'#nav-body\{[^}]*max-height:0', r'id="settings-panel"\s+style="display:none', r'#settings-panel\{display:none'], "KG controls/settings are not clearly closed by default", failures)
     require_any(html, ['id="settingsPanel" hidden', 'id="settings-panel"', 'settingsPanel.hidden=true'], "Advanced settings panel missing", failures)
@@ -218,6 +226,17 @@ def main() -> int:
     require_any(html, ['sampleEntity', 'SAMPLE(?s)', 'SAMPLE%28%3Fs%29'], "Canonical entity-type-summary query (SAMPLE(?s) AS ?sampleEntity ...) missing from SPARQL button/recipes", failures)
     require_any(html, ['entityCount', 'entityCount)', '%3FentityCount'], "Canonical entity-type-summary query's ?entityCount projection missing", failures)
 
+    # SPARQL-bearing sections must be closed-by-default accordions, not a
+    # wall of always-open verbatim query blocks (SKILL.md "SPARQL Query
+    # Presentation": <details>/<summary>). Only checked when the companion
+    # TTL actually declares schema:SoftwareSourceCode SPARQL examples, since
+    # that is what the accordion wraps.
+    if args.ttl:
+        ttl_text = Path(args.ttl).read_text(encoding="utf-8")
+        if "SoftwareSourceCode" in ttl_text and "SPARQL" in ttl_text:
+            require(html, '<details class="sparql-card"', "SPARQL query examples must render as closed-by-default <details class=\"sparql-card\"> accordions, not always-open <div> blocks", failures)
+            forbid_regex(html, r'<details class="sparql-card"[^>]*\bopen\b', "Sample-query <details> accordion must NOT carry an `open` attribute (closed by default)", failures)
+
     for label in [
         "Source material",
         "Companion files",
@@ -233,6 +252,64 @@ def main() -> int:
     require(html, "https://linkeddata.uriburner.com/describe/?url=", "URIBurner resolver pattern missing", failures)
     require(html, "https://linkeddata.uriburner.com/sparql", "URIBurner SPARQL endpoint missing", failures)
     require(html, "https://virtuoso.openlinksw.com/", "OpenLink Virtuoso attribution missing", failures)
+
+    # Responsive head-to-head comparison dual presentation (SKILL.md harness item 15).
+    # Conditional: only when a multi-column comparison matrix is present.
+    # Soft markers: comparison-table with ≥3 header cells (aspect + ≥2 entities),
+    # or explicit data-comparison-layout="responsive".
+    has_responsive_flag = 'data-comparison-layout="responsive"' in html or "data-comparison-layout='responsive'" in html
+    table_headers = re.findall(
+        r'<table[^>]*class="[^"]*comparison-table[^"]*"[^>]*>.*?<thead>(.*?)</thead>',
+        html,
+        re.S | re.I,
+    )
+    multi_col = False
+    for thead in table_headers:
+        th_count = len(re.findall(r'<th\b', thead, re.I))
+        if th_count >= 3:
+            multi_col = True
+            break
+    if not multi_col and re.search(r'class="[^"]*comparison-table[^"]*"', html):
+        # Fallback: count th in first comparison-table if thead missing
+        m = re.search(r'<table[^>]*class="[^"]*comparison-table[^"]*"[^>]*>(.*?)</table>', html, re.S | re.I)
+        if m and len(re.findall(r'<th\b', m.group(1), re.I)) >= 3:
+            multi_col = True
+    if multi_col or has_responsive_flag:
+        require_any(
+            html,
+            ['comparison-table-view', 'data-comparison-layout="responsive"'],
+            "Multi-column comparison matrix missing .comparison-table-view wrapper (responsive dual presentation)",
+            failures,
+        )
+        require_any(
+            html,
+            ['comparison-cards-view', 'class="comp-card"', "class='comp-card'"],
+            "Multi-column comparison matrix missing phone cards (.comparison-cards-view / .comp-card) — table-only horizontal scroll is not sufficient",
+            failures,
+        )
+        require_any(
+            html,
+            ['max-width: 900px', 'max-width:900px', '@media(max-width:900px)', '@media (max-width: 900px)'],
+            "Responsive comparison breakpoint (max-width: 900px) missing — cards must show on phones",
+            failures,
+        )
+        # First-column aspect labels must be resolver-linked to TTL dimension entities
+        # (td-aspect / td-dim anchors with describe/?url=).
+        aspect_linked = re.search(
+            r'<(?:td)[^>]*class="[^"]*(?:td-aspect|td-dim)[^"]*"[^>]*>\s*<a[^>]+href="[^"]*describe/\?url=',
+            html,
+            re.I,
+        ) or re.search(
+            r'class="comp-row-label"\s*>\s*<a[^>]+href="[^"]*describe/\?url=',
+            html,
+            re.I,
+        )
+        if not aspect_linked:
+            fail(
+                "Comparison aspect/dimension labels are not resolver-linked — first column of each table row "
+                "(and card .comp-row-label) MUST link via describe/?url= to ComparisonDimension/DefinedTerm IRIs from the companion TTL",
+                failures,
+            )
 
     # KG-curation attribution (agent-rdf-memory/howto/kg-curation-attribution.ttl) —
     # documented as a recurring miss (5 occurrences); this is now a blocking gate,

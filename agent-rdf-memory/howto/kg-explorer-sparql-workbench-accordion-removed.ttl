@@ -1,0 +1,43 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: KG Explorer / SPARQL Workbench Section-Level Accordion REMOVED — Step 185 Superseded"@en ;
+    schema:description "preferences.ttl Step 185 (2026-08-11) required wrapping #kg-explorer and #sparql-explorer each in an outer closed-by-default <details class=\"section-accordion\">. On 2026-08-12, after a follow-up session's aesthetics work on those same accordions (icon, live stat badge, width/centering fixes), the user explicitly instructed removing the accordion behavior entirely. This is a direct standing-rule reversal, not a bug fix — Step 185 is preserved as history but Step 194 supersedes it for these two sections specifically."@en ;
+    schema:dateCreated "2026-08-12T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :accordionRemoval ;
+    rdfs:seeAlso <../preferences.ttl#step-sparqlSectionsClosedAccordion>,
+        <../preferences.ttl#step-kgSparqlAccordionRemoved>,
+        <explorer-precedes-reference.ttl>,
+        <accordion-summary-heading-inheritance-gap.ttl>,
+        <footer-sparql-explorer-gate.ttl> .
+
+:accordionRemoval a schema:HowTo ;
+    schema:name "KG Explorer / SPARQL Workbench are always-visible sections again — no section-level <details> wrapper"@en ;
+    schema:description "What changed, why, and what stayed the same when the section-level accordion was removed."@en ;
+    schema:step :step-whatChanged, :step-whatStayed, :step-why, :step-validatorUpdate .
+
+:step-whatChanged a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "What changed: the outer <details class=\"section-accordion\"><summary>...</summary> wrapper is gone; #kg-explorer and #sparql-explorer are plain <section class=\"section section-alt\"> elements again"@en ;
+    schema:text "base_template.html: removed `<details class=\"section-accordion\" id=\"kg-explorer-accordion\">` / `<details class=\"section-accordion\" id=\"sparql-explorer-accordion\">` and their `<summary>` bars entirely, along with the matching `</details>` closing tags. The icon + title + live stat badge (node/link count, sample-query count) that lived in the summary were NOT discarded — they moved into a real `<h2 class=\"section-heading-flex\">` at the top of each section, so the visual richness survives but the collapse/toggle behavior does not. A real `<h2>` automatically inherits the page's standard heading typography (font-family/size/weight) via the existing `h1,h2,h3,h4`/`h2` CSS rules — no need to hand-restate them the way the old `<summary>`-based title required (see accordion-summary-heading-inheritance-gap.ttl for why that restatement was necessary in the first place)."@en .
+
+:step-whatStayed a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "What stayed the same: individual .sparql-card sample-query accordions inside SPARQL Workbench are UNCHANGED — still closed-by-default"@en ;
+    schema:text "This removal is scoped to the two SECTION-LEVEL wrappers only. Each sample SPARQL query inside the workbench is still its own `<details class=\"sparql-card\">` with a closed-by-default summary and an Execute button — that finer-grained per-query accordion pattern was not part of the user's instruction and remains exactly as Step 185/footer-sparql-explorer-gate.ttl specified."@en .
+
+:step-why a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Why: explicit, direct user instruction — no further justification needed or asked for"@en ;
+    schema:text "The user said, verbatim, 'Remove the accordion aspect of the KG Explorer and SPARQL workbench cards.' No reason was given and none was requested — a direct instruction that supersedes a prior standing aesthetics rule is followed as given, and the standing rule is updated to reflect the new instruction rather than re-litigated. If this is ever revisited, Step 185's original rationale (a heavy interactive surface shouldn't dominate the page before the reader opens it) is preserved in its own text for reference."@en .
+
+:step-validatorUpdate a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Validator update: validate-harness-contract.py's accordion-mandating checks were inverted, not deleted"@en ;
+    schema:text "The two `require()` calls demanding `<details class=\"section-accordion\" id=\"...-accordion\">` and the two `forbid_regex()` calls checking that details did NOT carry `open` were replaced with two `forbid_regex()` calls checking those exact accordion-wrapper strings are ABSENT. This keeps the harness self-enforcing in both directions: it will fail a future regeneration that reintroduces the accordion just as reliably as it previously failed one that omitted it. The presence check for the sections themselves (`require_any(['id=\"kg-explorer\"', ...])`) was untouched since it doesn't reference the accordion wrapper."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerPreferencesUpdate .

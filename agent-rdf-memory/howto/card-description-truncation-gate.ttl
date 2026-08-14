@@ -1,0 +1,46 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Card Description Silent Truncation and .card Text Overflow — Two Real Generator Bugs, One User Report"@en ;
+    schema:description "Caught 2026-08-13 on a 'Demo Instance Data' card: rdf_parser.py's extract_description() sliced any rdfs:comment/schema:description/schema:text to a hard [:400] with no word-boundary awareness and no ellipsis, silently cutting mid-word ('...the nine SP' where the source said 'SPARQL'); separately, .card/.card h3/.card p had no min-width:0 or overflow-wrap, so a long unbroken token (a raw filename used as a card title) could overflow the card's visual border. Companion to preferences.ttl Step 197."@en ;
+    schema:dateCreated "2026-08-13T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :cardTruncationFixes ;
+    rdfs:seeAlso <../preferences.ttl#step-cardDescriptionTruncation>,
+        <accordion-summary-heading-inheritance-gap.ttl>,
+        <explorer-precedes-reference.ttl> .
+
+:cardTruncationFixes a schema:HowTo ;
+    schema:name "Word-boundary-safe, ellipsis-marked description truncation; min-width:0 + overflow-wrap on every generic card"@en ;
+    schema:description "Two independent generator bugs surfaced by one user report ('needs an aesthetic clean... note the text overflow'): a silent content-loss bug (truncation) and a silent layout bug (overflow) that happened to compound on the same card, because a hand-authored schema:description crossed the 400-char cliff at the same time the card's title happened to be a long raw filename."@en ;
+    schema:step :step-truncationBug, :step-truncationFix, :step-overflowBug, :step-overflowFix, :step-contentFix .
+
+:step-truncationBug a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Bug: extract_description() sliced text[:400] with no word-boundary check and no ellipsis, so any description over 400 chars silently lost its ending mid-word"@en ;
+    schema:text "rdf_parser.py's extract_description() is the shared function behind every generic 'sections' (analysis-N) card, People card, and Organizations card across every document this skill generates — not a one-off. A description of 'the nine SPARQL queries...' got cut to 'the nine SP' with no '…' and no indication anything was missing; a reader has no way to tell truncation from a typo or a broken build. The 400-char limit itself was also arbitrary and quite tight for a real explanatory sentence, making the bug likely to recur on any sufficiently thorough description."@en .
+
+:step-truncationFix a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Fix: a shared _truncate_at_word_boundary() helper — rsplit on the last space before the limit, strip trailing punctuation, append an ellipsis, raise the ceiling to 600"@en ;
+    schema:text "rdf_parser.py: def _truncate_at_word_boundary(text, limit=600): if len(text) <= limit: return text; cut = text[:limit].rsplit(' ', 1)[0]; return cut.rstrip(',.;:—- ') + '…'. extract_description()'s three return sites (rdfs:comment, schema:description, schema:text) now all call this helper instead of a bare [:400] slice. A single unbroken token longer than the limit (no space to rsplit on) still gets a hard cut plus ellipsis rather than growing unbounded — the point is never to cut silently, not to guarantee zero truncation ever happens."@en .
+
+:step-overflowBug a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Bug: .card had no min-width:0, and .card h3/.card p had no overflow-wrap/word-break, so a long unbroken token (a raw filename as a card title) could overflow the card's visual border"@en ;
+    schema:text "Same root pattern as the earlier .section-accordion and .footer-inner width bugs (see explorer-precedes-reference.ttl): a CSS Grid item's default min-width:auto lets intrinsic content width push past the grid track/card border. This is universal to EVERY .cards-grid usage (People, Organizations, every generic analysis-N section), not specific to this one dataset card — it only became visible here because the card's title happened to be a long, mostly-unbroken raw filename."@en .
+
+:step-overflowFix a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Fix: min-width:0 on .card; overflow-wrap:anywhere + word-break:break-word on .card h3 and .card p"@en ;
+    schema:text "styles.css: .card{...;min-width:0}. .card h3{...;overflow-wrap:anywhere;word-break:break-word}. .card p{...;overflow-wrap:anywhere;word-break:break-word}. Fixed at the shared template so it benefits every card grid on every future document, not patched per-instance."@en .
+
+:step-contentFix a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Content fix for this specific card: stop using a raw filename as a card h3 title — give it a short human-readable schema:name, move the filename to schema:alternateName (not rendered), and keep the description under ~500 chars so it never approaches even the new 600-char limit"@en ;
+    schema:text "Renamed the card from the bare 'why-the-triple-is-the-wrong-grain-rebuttal-demo-data-claude_code-1.ttl' to 'Companion Demo Dataset (Turtle)' as the display schema:name; the actual filename moved to schema:alternateName (a property the generic card renderer does not read, so it no longer appears in the compact card — full traceability is still available via the entity's own describe/ page). This is the same principle as the footer's .path-chip pattern (small monospace filename display, not a giant unbroken heading) applied to a different card type. Caught a stale count in the same pass: the section's own description still said 'eight SPARQL queries' after a ninth query (:demoQ9) had been added in an earlier turn — fixed to 'nine'."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified .

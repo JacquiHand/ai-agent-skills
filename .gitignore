@@ -67,3 +67,6 @@ zii6taXt
 
 # Test run artifacts (Playwright etc.)
 /test-results/
+
+# Skill zip bundles are regenerated on demand — no need to track in git
+*.zip

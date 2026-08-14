@@ -1057,7 +1057,8 @@ Substitute: `{graph-iri}`, `{skills-used}`, `{entity-types}`, `{skill-links}`, a
 - Collapse-to-header-bar floating navigation: always-visible compact header, toggle, draggable, resizable.
 - Never persist collapsed dimensions in `localStorage`. Recover from stale state. Page-specific keys.
 - Dark mode: `html[data-theme="dark"]` and `@media (prefers-color-scheme: dark)` produce equivalent rendering. All colors via CSS variables.
-- **GATE: 0 failures required.** Validate: HTML parse, JS syntax, RDF parse + compliance audit, resolver links, local RDF link, nav behavior, skills attribution, dark mode consistency.
+- **Responsive head-to-head comparisons** — when the HTML companion includes a multi-entity comparison matrix (≥2 named products/platforms/systems as columns), dual-present per `rdf-infographic-skill`: table for viewports ≥901px, product cards for ≤900px (CSS-only). Every comparison aspect MUST be a TTL **instance** (name+description) typed via ontology class reuse first (shared vocab or corpus-canonical e.g. `cdx:ComparisonDimension`); mint a new class only under a distinct `owl:Ontology` when no shared/corpus term fits. First column of each table row (and card labels) MUST resolver-link to the aspect **instance** IRI. Do not ship phone-only horizontal-scroll matrices. Canonical template: `rdf-infographic-skill/assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html`. Prefs fallback: `agent-rdf-memory/preferences.ttl#step-responsiveComparisonPresentation`.
+- **GATE: 0 failures required.** Validate: HTML parse, JS syntax, RDF parse + compliance audit, resolver links, local RDF link, nav behavior, skills attribution, dark mode consistency, and responsive dual comparison presentation when a multi-column matrix is present.
 
 ---
 

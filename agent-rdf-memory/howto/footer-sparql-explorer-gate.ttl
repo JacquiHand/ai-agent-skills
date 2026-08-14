@@ -15,7 +15,9 @@
         :gate-sparqlBtnMandatory,
         :gate-sparqlExplorerVisibleText,
         :gate-footerTextAlignCascade,
-        :gate-staleWorkbenchCleanup .
+        :gate-staleWorkbenchCleanup,
+        :gate-sparqlSectionsClosedAccordion,
+        :gate-priorTemplateStalenessCheck .
 
 # ── Gate 1: sparqlBtn is mandatory ───────────────────────────────────────────────
 
@@ -111,3 +113,70 @@ CSS to KEEP (still used by accordion section and footer explorer):
 
 Incident (2026-06-25): HTML removed, JS/CSS left behind. document.getElementById("sparqlRecipe")
 threw null-ref on every page load; ~200 bytes of dead CSS remained."""@en .
+
+# ── Gate 5: SPARQL-bearing sections are closed-by-default accordions ─────────────
+
+:gate-sparqlSectionsClosedAccordion a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Any SPARQL-bearing section (sample query cards, the whole KG Explorer / SPARQL Workbench sections) must be a closed-by-default accordion"@en ;
+    schema:text """Two separate levels, both required:
+
+1. Per-query cards (schema:SoftwareSourceCode SPARQL examples rendered by build_sample_query_cards
+   in html_assembler.py): each is a <details class="sparql-card"> with the resolver-linked query
+   name as <summary>, no `open` attribute. SKILL.md already said "render as a <details>/<summary>
+   accordion" before this fix — the generator had silently implemented plain always-open <div>
+   cards instead. Same contract-vs-implementation gap pattern as generator-script-output-not-a-
+   substitute-for-contract-check.ttl; verified by re-running the actual generator, not by reading
+   SKILL.md prose.
+
+2. Whole sections (#kg-explorer, #sparql-explorer): each wrapped in an OUTER
+   <details class="section-accordion" id="{section}-accordion"><summary class="section-accordion-
+   summary">{Title}</summary> ... existing <section id="{section}">...</section> unchanged ...
+   </details>. Wrap without renaming the inner section/div ids — #kg-explorer is reused by both an
+   outer <section> and an inner <div> (pre-existing duplicate-id smell, not introduced by this fix
+   and not worth touching here); renaming risks breaking every CSS/JS reference
+   (#kg-explorer.kg-active, getElementById('kg-explorer'), the KG Explorer POST-WRITE grep gate
+   strings) for a cosmetic ID cleanup. Wrapping from the outside costs nothing and touches nothing
+   else.
+
+Required companions to the section-level wrap:
+  - CSS: .section-accordion-summary chevron/hover styling (Show ▼ / Hide ▲ via [open] state).
+  - JS: a same-page-anchor auto-reveal handler (hashchange + on load) that walks up .closest('details')
+    from the target element and sets .open = true, then re-scrolls — otherwise clicking a nav link to
+    #kg-explorer or #sparql-explorer scrolls to a collapsed, seemingly-empty area.
+  - Validator: require '<details class="section-accordion" id="kg-explorer-accordion">' and the
+    sparql-explorer equivalent; forbid_regex for an `open` attribute on either.
+
+Verification:
+  grep -c '<details class="sparql-card"' {file}                — ≥ 1 per SPARQL query example
+  grep -c '<details class="section-accordion" id="kg-explorer-accordion">' {file}      — 1
+  grep -c '<details class="section-accordion" id="sparql-explorer-accordion">' {file}  — 1
+  grep -n '<details class="section-accordion"[^>]*open' {file} — must be EMPTY (closed by default)
+
+Related bug caught in the same pass, same file (scripts/templates/styles.css): the CSS rule
+`.sparql-actions a{display:inline-flex}` silently overrode the `hidden` attribute on the
+legitimately-hidden #sparqlLiveLink proxy anchor, because a class selector beats a plain
+attribute selector `[hidden]` on specificity regardless of source order. Any future `hidden`
+element inside a styled container needs an explicit `.container [hidden]{display:none!important}`
+rule — `hidden` alone is not safe once a sibling-matching class rule sets `display`.
+
+Also removed in the same pass: a `#sparqlRun` button whose click handler was a byte-for-byte
+duplicate of `#sparqlBtn` (`window.open(sparqlBtn.href)`) — a second visible "Run" control doing
+the exact same thing as the first. Caught by the user noticing three "Run"-labeled controls in a
+delivered artifact; only two were ever meant to be visible (#sparqlBtn + the hidden #sparqlLiveLink
+proxy used by per-card Execute buttons)."""@en .
+
+# ── Gate 6: a copied prior-HTML template must be checked against the current numbered gates ──
+
+:gate-priorTemplateStalenessCheck a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "Verify a prior HTML file is actually current before copying it as a structural base — date/grep it against the footer/about-merge, explorer-placement, and card-uniformity gates"@en ;
+    schema:text """Incident (2026-08-13): enterprise-ai-coordinate-system-claude_sonnet_5-1.html was hand-built by copying uber-adr-agentic-ai-security-claude_sonnet_5-1.html (2026-08-04) as its CSS/JS/structural base. The copied file predated three later fixes and silently reintroduced all three: a standalone 'About This Page' section duplicating the footer attribution block (should have been merged per Step 186 / gate-noSecondAttributionSurface-equivalent), the SPARQL explorer stranded at the end of the footer instead of directly following #kg-explorer-section (Step 189), and unequal-width format-tab buttons / tech-cards from an unconstrained footer container (Steps 191-193). validate-harness-contract.py stayed green throughout — it checks for required CONTENT strings, not document ORDER or structural redundancy, so a passing validator run is not evidence the template is current.
+
+Required check before treating any prior HTML file as a copy-from base:
+  1. grep -c 'id=\"about\"' {template} — the match must be on the <footer> tag itself (merged), never on a separate <section id=\"about\"> that precedes </div><!-- /.page -->.
+  2. Confirm the <section> immediately following id=\"kg-explorer-section\" is id=\"sparql-explorer\" — not faq/glossary/howto. If the SPARQL block lives inside <footer>, the template is stale.
+  3. grep -n '.tech-card{' and '.kg-format-tabs button{' — confirm flex-centering/min-height on cards and flex:1 on tab buttons. Bare `text-align:center;padding` with no min-height, or auto-width tab buttons, means the template predates the uniformity fix.
+  4. If any check fails, do not patch just the new artifact and move on — port the corrected pattern from the newest compliant file in the same output folder, and prefer it as the new copy-from baseline going forward.
+
+'Same model, reasonably recent filename' is not sufficient evidence of compliance — only the four checks above are. This is the same underlying failure mode as Step 184 (prior-artifact-footer-polish-gate), one level earlier: that gate assumes the artifact you opened IS current; this gate makes you prove it before you copy from it."""@en .

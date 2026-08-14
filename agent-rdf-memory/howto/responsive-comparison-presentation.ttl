@@ -1,0 +1,130 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+<> a schema:HowTo ;
+    schema:name "Responsive Head-to-Head Comparison Presentation — Table on Large Screens, Cards on Small"@en ;
+    schema:description "Canonical dual-presentation contract for multi-entity comparison matrices in rdf-infographic-skill HTML: a comparison table for larger viewports and product/entity cards for phones and narrow screens. Skill-primary (SKILL.md + competitive H2H template); preferences.ttl is the fallback when the skill text is not loaded."@en ;
+    schema:dateCreated "2026-08-11T16:30:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-11T16:30:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :responsiveComparisonPresentation ;
+    schema:step :step-whenApplies, :step-dualMarkup, :step-cssBreakpoint,
+        :step-cardShape, :step-aesthetics, :step-resolverParity,
+        :step-overflow, :step-verifyViewports, :step-templateReuse ;
+    rdfs:seeAlso <../preferences.ttl#step-responsiveComparisonPresentation>,
+        <infographic-authoring.ttl>,
+        <https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill#this> .
+
+:responsiveComparisonPresentation a schema:Thing ;
+    schema:name "Responsive comparison dual presentation"@en ;
+    schema:description "Table matrix + product cards with CSS show/hide at a single breakpoint."@en .
+
+# ── Step 1 ───────────────────────────────────────────────────────────────────
+
+:step-whenApplies a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Apply when the HTML presents a multi-entity head-to-head or multi-column comparison matrix"@en ;
+    schema:text """TRIGGER — apply this contract whenever generated HTML includes a comparison matrix that places two or more named products, platforms, systems, harnesses, vendors, or offerings as parallel columns (or an equivalent multi-entity scoreboard). Typical sources: competitive analyses, feature matrices, Grok/X tabulated comparisons, capability grids with ≥2 peer entities.
+
+DOES NOT APPLY to: single-column definition lists, simple two-column prose layouts without entity columns, FAQ/glossary/HowTo sections, or pure metric KPI chips.
+
+PRIMARY AUTHORITY: rdf-infographic-skill SKILL.md section 'Responsive Head-to-Head Comparison Presentation' and assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html. This howto and preferences.ttl#step-responsiveComparisonPresentation are the FALLBACK when the skill is not loaded."""@en .
+
+# ── Step 2 ───────────────────────────────────────────────────────────────────
+
+:step-dualMarkup a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Ship dual markup: comparison-table-view AND comparison-cards-view with identical facts"@en ;
+    schema:text """Do not rely on a horizontally scrollable table alone on phones. Emit BOTH:
+
+1. .comparison-table-view wrapping a semantic <table class="comparison-table"> (Aspect/Dimension column + one column per entity).
+2. .comparison-cards-view wrapping .comparison-cards > .comp-card per entity, each listing every dimension as a label/value row.
+
+Both views MUST carry the same cell values (no desktop-only facts). Prefer a single generation-time data structure that renders both views. Optional: data-comparison-layout="responsive" on the outer wrapper for grep/validator discovery.
+
+Accessibility: each view is a role="region" with a distinct aria-label (e.g. 'Comparison matrix for larger screens' / 'Comparison cards for smaller screens')."""@en .
+
+# ── Step 3 ───────────────────────────────────────────────────────────────────
+
+:step-cssBreakpoint a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Use CSS media queries — table ≥901px, cards ≤900px; no JS required for the switch"@en ;
+    schema:text """Canonical breakpoint: 900px.
+
+@media (max-width: 900px) {
+  .comparison-table-view { display: none; }
+  .comparison-cards-view { display: block; }
+}
+@media (min-width: 901px) {
+  .comparison-table-view { display: block; }
+  .comparison-cards-view { display: none; }
+}
+
+Optional .comparison-view-hint visible only in the cards breakpoint (e.g. 'Each card lists all dimensions for one product'). Do not use JS resize listeners for the default switch — CSS is the contract. Horizontal scroll on the table may remain as a progressive enhancement for intermediate widths, but it MUST NOT be the only mobile strategy when ≥3 entity columns are present."""@en .
+
+# ── Step 4 ───────────────────────────────────────────────────────────────────
+
+:step-cardShape a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Default card shape is product-centric: one card per compared entity"@en ;
+    schema:text """Default: one .comp-card per product/platform/entity with:
+- .comp-card-header — entity name (resolver-linked) + short badge (license, maturity, etc.)
+- .comp-card-body — .comp-row rows with .comp-row-label (dimension) + .comp-row-value (cell text)
+
+At max-width:480px, stack .comp-row to a single column (label above value).
+
+Alternative (only when entity count is 2 and dimension-first reads better): dimension cards with two labeled values — still dual with the table; never ship cards-only without the desktop table for H2H matrices."""@en .
+
+# ── Step 5 ───────────────────────────────────────────────────────────────────
+
+:step-aesthetics a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Match competitive H2H aesthetics: accent columns, sticky aspect, premium header, dark-mode variables"@en ;
+    schema:text """Visual non-negotiables drawn from the competitive-analysis-head-to-head template + the 2026-08-11 coding-agent-harness comparison clean-up:
+- Table header uses strong contrast (gradient/panel-strong); aspect column sticky or visually distinct.
+- Per-entity column accent (border-left or header underline) so peers scan vertically.
+- Cards use per-entity header gradient or accent consistent with the table column accent.
+- All colors via CSS variables; dark mode via two SEPARATE blocks (html[data-theme='dark'] and @media prefers-color-scheme) — never comma-combine a selector with @media.
+- Section intro is reader-facing (what is being compared), not RDF machinery prose."""@en .
+
+# ── Step 6 ───────────────────────────────────────────────────────────────────
+
+:step-resolverParity a schema:HowToStep ;
+    schema:position 6 ;
+    schema:name "Compared entities AND every aspect/dimension are resolver-linked from TTL entities typed via ontology classes"@en ;
+    schema:text """Two resolver layers are required:
+
+1. COMPARED ENTITIES — each product/platform name in table <th> and card header MUST link through the configured resolver (default URIBurner describe/?url=) to that entity's RDF IRI.
+2. ASPECT / DIMENSION COLUMN (REQUIRED) — every comparison aspect is a first-class **instance** in the companion TTL with schema:name + schema:description. Typing hierarchy for the **class** of those instances:
+   (a) Shared ontology term if it fits (e.g. also type schema:DefinedTerm).
+   (b) Corpus-canonical analysis class if registered (e.g. cdx:ComparisonDimension from entities/ontology-terms.ttl) — REUSE via @prefix, never re-mint a local :ComparisonDimension class (prefs step-crossDocumentLocalTermReuse / step-mintingRunsOntologyGates).
+   (c) Only if absent from shared + corpus registries: mint a new class under a DISTINCT owl:Ontology entity in the document (document <> remains schema:CreativeWork only; :ontology a owl:Ontology with differentiated name/description), rdfs:isDefinedBy :ontology on every new class/property, full ontology-discovery + cross-reference gates, then register the new class for future reuse.
+   Instances stay document-local hash IRIs (:dimLicense). In HTML, the FIRST CELL of every comparison table body row MUST resolver-link to that **instance** IRI; card .comp-row-label likewise. Plain-text first-column labels are a contract violation.
+
+Same target=_blank rel=noopener noreferrer rules as the rest of the infographic. Worked example 2026-08-11: coding-agent-harness-comparison-...-1.ttl uses cdx:ComparisonDimension for class typing + document-local :dim* instances linked from the HTML first column."""@en .
+
+# ── Step 7 ───────────────────────────────────────────────────────────────────
+
+:step-overflow a schema:HowToStep ;
+    schema:position 7 ;
+    schema:name "Apply long-token overflow protection on table cells and card value rows"@en ;
+    schema:text """.comparison-wrap, .comp-card, .comp-row, th, td must use min-width:0 where they participate in grid/flex; text-bearing cells use overflow-wrap:anywhere and word-break:break-word. Verify el.scrollWidth <= el.clientWidth at ~390px width before delivery. See howto/infographic-authoring.ttl overflow steps."""@en .
+
+# ── Step 8 ───────────────────────────────────────────────────────────────────
+
+:step-verifyViewports a schema:HowToStep ;
+    schema:position 8 ;
+    schema:name "BLOCKING viewport check: prove table shows at ≥901px and cards at ≤900px"@en ;
+    schema:text """Before delivery, verify (Playwright, browser resize, or equivalent):
+1. Viewport ≥901px: getComputedStyle(.comparison-table-view).display is block (or table-like visible); .comparison-cards-view is none.
+2. Viewport ≤900px (e.g. 390×844): table view none; cards view block; card count equals entity column count; no horizontal overflow on cards.
+GATE: do not deliver a multi-column comparison matrix that only horizontal-scrolls on phones when dual presentation is feasible."""@en .
+
+# ── Step 9 ───────────────────────────────────────────────────────────────────
+
+:step-templateReuse a schema:HowToStep ;
+    schema:position 9 ;
+    schema:name "Reuse the competitive H2H template pattern — do not invent a one-off matrix"@en ;
+    schema:text """When content type is competitive/head-to-head (howto/infographic-authoring.ttl step-templateSelection), start from assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html which embeds this dual-presentation pattern. Copy the comparison CSS/HTML structure; substitute entities and cells from the companion RDF. Do not regenerate a bare <table> without cards. Worked example of a 4-entity instance: LLM_ROOT/Grok/webpages/coding-agent-harness-comparison-pi-opencode-claude-codex-grok-4-5-1.html (2026-08-11)."""@en .
