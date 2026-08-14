@@ -19,7 +19,7 @@ URIBurner (`linkeddata.uriburner.com`), ODS-QA (`ods-qa.openlinksw.com`), Localh
 3. Load prompt template from `prompts/`
 4. Substitute placeholders, generate Turtle
 5. Validate syntax (rdflib), validate SHACL (`scripts/validate-offers-shacl.py`)
-6. Run Post-Generation Checklist, save, provide loading instructions
+6. Run Post-Generation Checklist, save to `/Users/jacqui/source/ttl/my_git_forks/virtuoso-82-offers-description/` (default output directory for all generated offer files), provide loading instructions
 ## Document Metadata Block (source:)
 Immediately after the `@prefix` declarations, every generated file MUST open with a `schema:CreativeWork` block describing **the Turtle file being generated itself** — never the licensed resource (file/graph/API being sold). Declare:
 ```turtle
@@ -71,6 +71,83 @@ Notes:
 - `schema:url` on the top-level Product is the **host root** (`https://{host_hostname}/`), not the `/DAV` path — the `/DAV` endpoint belongs to the nested `schema:hasPart` sub-resource's `schema:url`.
 - `skos:related` points at the OPAL ACL server Product (`http://data.openlinksw.com/oplweb/{host_short}OPAL#this`, see `references/offer-iri-patterns.md`) — required because an OPAL server is what actually creates the ACLs backing file access.
 - The SHACL gate targets this shape via `sh:targetSubjectsOf schema:applicationCategory` rather than `sh:targetClass schema:WebAPI` — the nested WebDAV sub-resource is also `a schema:WebAPI` but has no `schema:applicationCategory`, so it's correctly excluded from this shape and validated only by its own (lighter) constraints (`schema:name`, `schema:description`, `schema:serviceType "WebDAV Service"@en`, `schema:url`).
+## Graph Access Product (WebAPI+Service) Description Template
+The Product node for a **Graph Access** offer MUST follow this full template — not a minimal stub. It mirrors the File Access template one-for-one, substituting the SPARQL/knowledge-graph vocabulary:
+```turtle
+<http://data.openlinksw.com/oplweb/{host_short}DA#this> a schema:WebAPI, schema:Service ;
+    schema:name "Knowledge graph access via {host_short}"@en ;
+    schema:applicationCategory "Data Access"@en ;
+    schema:applicationSubCategory "ACL controlled knowledge graph access"@en ;
+    schema:description """Attribute-based, access control constrained SPARQL access to a named graph hosted by {host_hostname}."""@en ;
+    skos:related <http://data.openlinksw.com/oplweb/{host_short}OPAL#this> ;
+    schema:provider [
+        a schema:Organization ;
+        schema:name "OpenLink Software"@en ;
+        schema:url <https://www.openlinksw.com/> ;
+    ] ;
+    schema:url <https://{host_hostname}/> ;
+    schema:hasPart [
+        a schema:WebAPI ;
+        schema:name "SPARQL Query Service Endpoint"@en ;
+        schema:description """HTTP SPARQL Query Service Endpoint providing access to the named graph."""@en ;
+        schema:serviceType "SPARQL Query Service"@en ;
+        schema:url <https://{host_hostname}/sparql>
+    ] .
+```
+Notes (identical reasoning to the File Access template, see `references/offer-iri-patterns.md` for the `{host_short}DA#this` / `{host_short}OPAL#this` IRI patterns):
+- Fixed-convention literals (`"Data Access"@en`, `"ACL controlled knowledge graph access"@en`, `"SPARQL Query Service"@en`) all need the `@en` tag — exact term equality.
+- `schema:url` on the top-level Product is the **host root**, not `/sparql` — the SPARQL endpoint path belongs on the nested `schema:hasPart` sub-resource's `schema:url`.
+- The Product is typed **both** `schema:WebAPI` and `schema:Service` (unlike File Access, which is `schema:WebAPI` only).
+- Same `sh:targetSubjectsOf schema:applicationCategory` scoping trick as File Access — the nested SPARQL sub-resource is also `a schema:WebAPI` but has no `applicationCategory`, so it's excluded from this shape and validated only by its own lighter nested constraints.
+- The License's `opllic:graphParameter` should be the actual named graph IRI being sold access to (e.g. `urn:jch:test`), not the SPARQL endpoint URL — the endpoint URL belongs on the Product's `hasPart` sub-resource. A sample `opllic:uriParameter` query URL scoping `default-graph-uri` to that graph is good practice (see the two prior-art reference files) but not gate-enforced.
+## Graph Access Authorization Block (ConditionalGroup + acl:Authorization)
+Every generated **Graph Access** offer file MUST also include, in the same output file, a self-contained authorization block granting the purchaser actual read access to the sold graph — otherwise the offer/license/price bundle exists but nothing enforces it. This mirrors the pattern in the prior-art `Offers-authorizations-and-restrictions.ttl` (see `oplacl:demo-graph-access-world-cup-meshup` / `<.../group/DemoGraphAccessUsersWorldCupMeshup#this>`), reusing the same `oplofr:{OfferIdentifier}Offer` resource-specific type from the Entity IRI/Type conventions above as the purchase-check predicate:
+```turtle
+<http://data.openlinksw.com/oplweb/group/{OfferIdentifier}GraphAccessUsers#this> a oplacl:ConditionalGroup ;
+    foaf:name "Users identified using a NetID based Identifier who have purchased the {offer name} offer and whose license is in date" ;
+    oplacl:hasCondition [
+        a oplacl:GroupCondition, oplacl:QueryCondition ;
+        oplacl:hasQuery """prefix oplprchs: <http://www.openlinksw.com/ontology/purchases#>
+          prefix opllic:  <http://www.openlinksw.com/ontology/licenses#>
+          prefix oplofr:  <http://www.openlinksw.com/ontology/offers#>
+          prefix schema:  <http://schema.org/>
+          prefix oplshop: <http://www.openlinksw.com/ontology/shop#>
+          prefix owl:     <http://www.w3.org/2002/07/owl#>
+          ask where {
+            { graph <urn:openlinksw.com.shop:registry> { ?shop oplshop:hasPurchaseCache ?cg } }
+            union
+            { bind(<urn:openlinksw.com:shop:purchases:cache> as ?cg) }
+            graph ?cg {
+              { ^{uri}^ oplprchs:madePurchase ?purchase . }
+              union
+              { ?o owl:sameAs ^{uri}^ ; oplprchs:madePurchase ?purchase . }
+              ?purchase oplprchs:contains ?offer ;
+                        oplprchs:purchaseDate ?purchaseDate .
+              ?offer a oplofr:{OfferIdentifier}Offer ;
+                     schema:itemOffered ?license .
+              ?license opllic:hasDuration ?duration .
+              optional {?duration opllic:durationYears ?years .}
+              filter ((?duration like <http://data.openlinksw.com/oplweb/license/License-Duration#ongoing-subscription> ) or
+                      (bif:dateadd ('day', xsd:integer(?years) * 365, ?purchaseDate) > bif:now()) ) .
+            }
+          }"""
+    ] .
+
+<http://data.openlinksw.com/oplweb/acl/{OfferIdentifier}GraphAccess#this> a acl:Authorization ;
+    schema:name "Rule to allow access to the <{graph IRI}> graph" ;
+    acl:accessTo <{graph IRI}> ;
+    oplacl:hasAccessMode oplacl:Read ;
+    oplacl:hasRealm oplacl:DefaultRealm ;
+    oplacl:hasScope oplacl:PrivateGraphs ;
+    acl:agent <http://data.openlinksw.com/oplweb/group/{OfferIdentifier}GraphAccessUsers#this> ;
+    wdrs:describedby source: .
+```
+Notes:
+- `{graph IRI}` in `acl:accessTo` MUST be the exact same IRI as the License's `opllic:graphParameter` — this is what actually ties the purchase to real access. The SHACL gate enforces this cross-link with a `sh:sparql` constraint on `GraphAccessOfferShape`: it fails if no `acl:Authorization` exists with `acl:accessTo` equal to the Offer's License's `graphParameter` and `oplacl:hasAccessMode oplacl:Read`.
+- The embedded SPARQL `ASK` query text inside `oplacl:hasQuery` is NOT gate-validated for content (it's a plain string literal, and string-matching against arbitrarily-formatted embedded SPARQL would be too fragile) — get the `oplofr:{OfferIdentifier}Offer` reference right by hand, matching the resource-specific type actually used on the Offer.
+- `oplacl:ConditionalGroup` (needs `foaf:name` and `oplacl:hasCondition`/`oplacl:GroupCondition`/`oplacl:hasQuery`) and `acl:Authorization` (needs `acl:accessTo`, `oplacl:hasAccessMode oplacl:Read`, `oplacl:hasRealm oplacl:DefaultRealm`, `oplacl:hasScope oplacl:PrivateGraphs`, `acl:agent` pointing at the group, `wdrs:describedby`) are both independently gate-enforced as structural shapes.
+- The prior-art reference file also includes an additional `filter (sql:stripe_customer_has_active_product_subscription(...))` clause for Stripe-backed recurring subscriptions — include it when the offer is a recurring subscription (see Subscription Pricing above), matching the style of `oplacl:demo-graph-access-world-cup-meshup`'s group condition.
+- This authorization block is currently required for **Graph Access offers only** (per explicit scope decision) — File Access and API Access offers don't need it yet.
 ## Auto-Derivation
 - name: First sentence ≤80 chars
 - pref_label: Abbreviated ≤60 chars
@@ -84,6 +161,7 @@ Notes:
 - image: The License MUST carry `schema:image`. If the user doesn't specify a particular image for this offer, default to `<https://www.openlinksw.com/DAV/oplweb3/images/controlled-access-to-data-assets.jpg>`.
 - license typing: Every License (File Access, Graph Access, or API Access — all three) MUST be typed with all four classes, not just `opllic:ProductLicense`: `a opllic:ProductLicense, opllic:Product, opllic:ACLOnly, opllic:SubscriptionLicense`. This applies regardless of whether the price is one-time or recurring. The SHACL gate checks each of the three extra types as an independent required value on `rdf:type` — a License missing any one of them fails, with a separate violation naming exactly which type is absent.
 - priceCurrency literal form: `schema:priceCurrency` MUST always be written with an explicit `^^xsd:string` datatype annotation — `schema:priceCurrency "USD"^^xsd:string ;` — never the bare/plain form (`schema:priceCurrency "USD" ;`). This is a serialization convention only, not something the SHACL gate can check: a plain string and an explicitly-typed `"USD"^^xsd:string` are the same RDF term under RDF 1.1 simple-literal semantics, so `sh:datatype xsd:string` already accepts both and can't tell them apart. Get it right at generation time.
+- resource-specific offer type: Every Offer (all three offer types) MUST carry an additional `rdf:type` in the `oplofr:` namespace named `oplofr:{OfferIdentifier}Offer` — specific to the resource being sold, not to the host serving it. `{OfferIdentifier}` is the exact same PascalCase identifier used in the Offer/License/PriceSpecification IRIs (see Entity IRI Naming Convention) — no `{host_suffix}`. Example: for the Offer at `.../offer/JchTestGraphOfferOds-qa#this` (selling access to `urn:jch:test`), add `oplofr:JchTestGraphOffer` alongside `schema:Offer`, `oplofr:DemoGraphAccessOffer`, `oplofr:SubscriptionOffer`. The SHACL gate enforces this on `BaseOfferShape` via a qualified value shape: at least one `rdf:type` value must be an `oplofr:` IRI ending in `Offer` that is NOT one of the known host-generic classes (`oplofr:DAVOffer`, `oplofr:DemoFileAccessOffer`, `oplofr:DemoGraphAccessOffer`, `oplofr:SubscriptionOffer`) — **if a new host-generic offer class is ever added (e.g. for API Access), add it to that exclusion list in `shacl/common-offer-shape.ttl`'s `BaseOfferShape`, or a real resource-specific offer would incorrectly satisfy the check by accident, or worse, a missing resource-specific type could go undetected.**
 ## GATE: 0 FAIL
 `python3 scripts/validate-offers-shacl.py output.ttl --type {file|graph|api}` — must pass before delivery.
 ## Loading into Shop
