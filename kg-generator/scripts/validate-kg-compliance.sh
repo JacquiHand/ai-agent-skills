@@ -2,7 +2,13 @@
 # validate-kg-compliance.sh — Automated compliance audit for KG generator output
 # Usage: ./validate-kg-compliance.sh <file.ttl|file.jsonld> [--turtle|--jsonld]
 
-set -euo pipefail
+# NOTE: no `pipefail` — the checks below pipe a large $CONTENT into `grep -q`,
+# which exits as soon as it finds a match. On large files that early exit can
+# SIGPIPE the upstream `echo` before it finishes writing, and under pipefail
+# that turns a real match into a false FAIL. Reproduced 2026-08-06 on an
+# 83KB/2400-char-line Turtle file where `@prefix schema:` is a genuine, early,
+# single-line match but the script still reported it missing.
+set -eu
 
 FILE="$1"
 FORMAT="${2:-}"
@@ -82,11 +88,16 @@ if [ "$FORMAT" = "--turtle" ]; then
   fi
   # 5b. Ontology is linked via hasPart
   if echo "$CONTENT" | grep -q 'a owl:Ontology'; then
-    # Check if the ontology IRI (typically just `:`) appears in hasPart
-    if echo "$CONTENT" | grep -A2 'schema:hasPart' | grep -qE ':(\s|,|;|\))'; then
+    # Find the ontology's own subject IRI (e.g. `:ontology` or bare `:`), then
+    # confirm that exact token appears in some schema:hasPart list.
+    ONT_SUBJECT=$(echo "$CONTENT" | grep -B5 'a owl:Ontology' | grep -oE '^:[A-Za-z0-9_]*|^\s*:\s' | tail -1 | tr -d ' ')
+    if [ -z "$ONT_SUBJECT" ]; then
+      ONT_SUBJECT=':'
+    fi
+    if echo "$CONTENT" | grep -A3 'schema:hasPart' | grep -qE "(^|[[:space:]])${ONT_SUBJECT}([[:space:]]|,|;|\))"; then
       pass "Ontology linked via schema:hasPart"
     else
-      fail "Ontology not linked via schema:hasPart" "Add `, :` to the article's schema:hasPart list"
+      fail "Ontology not linked via schema:hasPart" "Add '${ONT_SUBJECT}' to the article's schema:hasPart list"
     fi
   fi
 
@@ -115,7 +126,7 @@ if [ "$FORMAT" = "--turtle" ]; then
   fi
 
   # 9. FAQ question count
-  FAQ_COUNT=$(echo "$CONTENT" | grep -c 'a schema:Question')
+  FAQ_COUNT=$(echo "$CONTENT" | grep -c 'a schema:Question' || true)
   if [ "$FAQ_COUNT" -ge 8 ]; then
     pass "FAQ question count: $FAQ_COUNT"
   else
@@ -150,6 +161,38 @@ if [ "$FORMAT" = "--turtle" ]; then
       pass "All classes/properties have rdfs:isDefinedBy ($DEFINEDBY_COUNT/$NEEDED)"
     else
       fail "Missing rdfs:isDefinedBy ($DEFINEDBY_COUNT of $NEEDED classes/properties)" "Add rdfs:isDefinedBy : to each class and property"
+    fi
+
+    # 11b. Document entity (<>) must NOT duplicate the owl:Ontology entity's
+    # schema:name/schema:description verbatim — they are two distinct entities
+    # (the CreativeWork document vs. the OWL ontology it describes) and must
+    # carry differentiated text: the document's name/description should read
+    # as being ABOUT the ontology (e.g. "{Name} Document" / "Document about
+    # ..."), not restate the ontology's own self-description.
+    DOC_NAME=$(echo "$CONTENT" | grep -A3 '^<> a schema:CreativeWork' | grep 'schema:name' | head -1 | sed -n 's/.*schema:name *"\([^"]*\)".*/\1/p')
+    ONT_NAME=$(echo "$CONTENT" | grep -B1 -A3 'a owl:Ontology' | grep 'schema:name' | head -1 | sed -n 's/.*schema:name *"\([^"]*\)".*/\1/p')
+    if [ -n "$DOC_NAME" ] && [ -n "$ONT_NAME" ]; then
+      if [ "$DOC_NAME" = "$ONT_NAME" ]; then
+        fail "Document entity (<>) schema:name is identical to the owl:Ontology entity's schema:name ('$DOC_NAME')" "Differentiate: document entity name should read '{Ontology Name} Document' or similar, not restate the ontology's own name verbatim"
+      else
+        pass "Document entity and owl:Ontology entity have differentiated schema:name"
+      fi
+    fi
+
+    # 11c. rdfs:isDefinedBy must point to the entity actually typed owl:Ontology,
+    # not the bare `:` (empty-fragment `<#>`) IRI — `:` is a valid Turtle prefix
+    # shorthand but is not itself typed owl:Ontology unless the ontology entity
+    # IS minted at `<#>` with no local name. If the ontology is minted at a named
+    # fragment (e.g. `:hospitalOS a owl:Ontology`), every `rdfs:isDefinedBy :` is
+    # pointing at the wrong (untyped) resource.
+    ONTOLOGY_SUBJECT=$(echo "$CONTENT" | grep -oE '^:[A-Za-z0-9_-]+ a owl:Ontology' | head -1 | sed -E 's/^(:[A-Za-z0-9_-]+).*/\1/')
+    if [ -n "$ONTOLOGY_SUBJECT" ] && [ "$ONTOLOGY_SUBJECT" != ":" ]; then
+      BARE_DEFINEDBY_COUNT=$(echo "$CONTENT" | grep -cE 'rdfs:isDefinedBy[[:space:]]*:[[:space:]]*\.' || true)
+      if [ "$BARE_DEFINEDBY_COUNT" -gt 0 ]; then
+        fail "rdfs:isDefinedBy points to the bare ':' (<#>) IRI in $BARE_DEFINEDBY_COUNT place(s), not to '$ONTOLOGY_SUBJECT' (the entity actually typed owl:Ontology)" "Replace 'rdfs:isDefinedBy : .' with 'rdfs:isDefinedBy $ONTOLOGY_SUBJECT .' throughout"
+      else
+        pass "rdfs:isDefinedBy correctly points to the owl:Ontology-typed entity ($ONTOLOGY_SUBJECT)"
+      fi
     fi
   fi
 

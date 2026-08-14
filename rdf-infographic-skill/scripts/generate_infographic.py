@@ -43,6 +43,10 @@ def main() -> int:
     parser.add_argument("--source-label", default="", help="Source label for attribution")
     parser.add_argument("--resolver-pattern", default="https://linkeddata.uriburner.com/describe/?url=",
                         help="Resolver URL pattern (default: URIBurner)")
+    parser.add_argument("--llm-name", default="Claude Sonnet 5",
+                        help="Executing LLM/model name for the KG-curation attribution line (default: Claude Sonnet 5)")
+    parser.add_argument("--llm-url", default="https://www.anthropic.com/claude",
+                        help="Executing LLM's canonical product page (default: https://www.anthropic.com/claude)")
 
     args = parser.parse_args()
 
@@ -62,6 +66,8 @@ def main() -> int:
         source_url=args.source_url,
         source_label=args.source_label,
         resolver_pattern=args.resolver_pattern,
+        llm_name=args.llm_name,
+        llm_url=args.llm_url,
     )
 
     return 0 if success else 1

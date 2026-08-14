@@ -59,6 +59,53 @@ def render_narrative(rdf_path: str | Path, base_iri: str, resolver_pattern: str)
     has_howto = len(narrative["howto"]) > 0
     has_people = len(narrative["people"]) > 0
     has_orgs = len(narrative["organizations"]) > 0
+    has_synopsis = narrative.get("synopsis") is not None
+    has_sections = len(narrative.get("sections", [])) > 0
+
+    if has_synopsis:
+        syn = narrative["synopsis"]
+        abstract = escape(syn["abstract"]) if syn["abstract"] else ""
+        iri = syn["iri"]
+        heading = escape(syn["headline"]) if syn["headline"] else "Synopsis"
+        link_open = f'<a href="{make_resolver_link(iri, resolver_pattern)}" target="_blank" rel="noopener noreferrer">' if iri else ""
+        link_close = "</a>" if iri else ""
+        items_html = f'<p style="font-size:1.05rem;line-height:1.7">{abstract}</p>' if abstract else ""
+        if iri:
+            items_html += f'<p style="margin-top:1rem;font-size:0.85rem">{link_open}View this analysis as a KG entity{link_close}</p>'
+        html_parts.append(render_narrative_section("synopsis", "Synopsis", items_html))
+        nav_links.append({"href": "#synopsis", "label": "Synopsis"})
+        sections.append("synopsis")
+
+    if has_sections:
+        for idx, sec in enumerate(narrative["sections"], 1):
+            sec_id = f"analysis-{idx}"
+            sec_name = escape(sec["name"])
+            sec_iri = sec["iri"]
+            sec_abstract = escape(sec["abstract"]) if sec["abstract"] else ""
+            inner = f'<p style="font-size:0.98rem;line-height:1.7;color:var(--text-secondary)">{sec_abstract}</p>' if sec_abstract else ""
+            if sec["items"]:
+                inner += '<div class="cards-grid mt-2">'
+                for item in sec["items"]:
+                    i_iri = item["iri"]
+                    i_name = escape(item["name"])
+                    i_desc = escape(item["description"]) if item["description"] else ""
+                    inner += (
+                        f'<div class="card">'
+                        f'<h3><a href="{make_resolver_link(i_iri, resolver_pattern)}" target="_blank" rel="noopener noreferrer">{i_name}</a></h3>'
+                        f'<p>{i_desc}</p></div>'
+                    )
+                inner += '</div>'
+            link_open = f'<a href="{make_resolver_link(sec_iri, resolver_pattern)}" target="_blank" rel="noopener noreferrer">' if sec_iri else ""
+            link_close = "</a>" if sec_iri else ""
+            title_html = f'{link_open}{sec_name}{link_close}' if sec_iri else sec_name
+            html_parts.append(
+                f'<section class="section section-alt" id="{sec_id}">'
+                f'<h2>{title_html}<a class="headline-anchor" href="#{sec_id}" aria-label="Link to this section">¶</a></h2>'
+                f'{inner}'
+                f'</section>'
+            )
+            nav_links.append({"href": f"#{sec_id}", "label": sec["name"][:28]})
+            sections.append(sec_id)
 
     if has_people:
         items_html = ""
@@ -160,11 +207,35 @@ def render_narrative_section(section_id: str, title: str, inner_html: str) -> st
     return make_section_html(section_id, title, inner_html)
 
 
-def render_jsonld(title: str, description: str, base_iri: str, rdf_rel_path: str) -> str:
+KIDEHEN_WEBID = "https://www.linkedin.com/in/kidehen#this"
+KG_GENERATOR_URL = "https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/kg-generator"
+RDF_INFOGRAPHIC_SKILL_URL = "https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill"
+
+
+def render_jsonld(
+    title: str,
+    description: str,
+    base_iri: str,
+    rdf_rel_path: str,
+    llm_name: str = "Claude Sonnet 5",
+    llm_url: str = "https://www.anthropic.com/claude",
+    principal_webid: str = KIDEHEN_WEBID,
+) -> str:
+    """Build the embedded JSON-LD block.
+
+    The KG-curation delegation chain (schema:author / accountablePerson on the
+    document, prov:wasGeneratedBy + prov:actedOnBehalfOf on each generating
+    agent) is always included — never opt-in. This closed a recurring gap
+    (5 documented occurrences in agent-rdf-memory/howto/kg-curation-attribution.ttl)
+    where the generator shipped HTML with no delegation chain, or with
+    prov:actedOnBehalfOf pointing at the LLM/tool itself instead of the human
+    principal on whose behalf it acted.
+    """
     ld = {
         "@context": {
             "@vocab": "http://schema.org/",
             "@language": "en",
+            "prov": "http://www.w3.org/ns/prov#",
         },
         "@type": "Article",
         "@id": base_iri,
@@ -175,23 +246,115 @@ def render_jsonld(title: str, description: str, base_iri: str, rdf_rel_path: str
             "@id": base_iri,
         },
         "sameAs": rdf_rel_path,
+        "author": {"@id": principal_webid},
+        "accountablePerson": {"@id": principal_webid},
+        "prov:wasGeneratedBy": [
+            {
+                "@id": f"{KG_GENERATOR_URL}#this",
+                "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+                "name": "kg-generator",
+                "url": KG_GENERATOR_URL,
+                "prov:actedOnBehalfOf": {"@id": principal_webid},
+            },
+            {
+                "@id": f"{RDF_INFOGRAPHIC_SKILL_URL}#this",
+                "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+                "name": "rdf-infographic-skill",
+                "url": RDF_INFOGRAPHIC_SKILL_URL,
+                "prov:actedOnBehalfOf": {"@id": principal_webid},
+            },
+            {
+                "@id": f"{llm_url}#this",
+                "@type": ["SoftwareApplication", "prov:SoftwareAgent"],
+                "name": llm_name,
+                "url": llm_url,
+                "prov:actedOnBehalfOf": {"@id": principal_webid},
+            },
+        ],
     }
     return json.dumps(ld, indent=2)
 
 
-def build_sparql_recipes(base_iri: str) -> list[dict]:
+def render_hero_meta(
+    llm_name: str = "Claude Sonnet 5",
+    llm_url: str = "https://www.anthropic.com/claude",
+    principal_name: str = "Kingsley Idehen",
+    principal_resolver: str = "https://linkeddata.uriburner.com/describe/?url=https%3A%2F%2Fwww.linkedin.com%2Fin%2Fkidehen%23this",
+) -> str:
+    """Build the visible hero-meta 'KG curated by ... on behalf of ...' line.
+
+    This is rendered into every generated infographic by default (see
+    assemble_html's meta_html handling) rather than left as an opt-in
+    caller-supplied string — the prior opt-in design was the root cause of
+    the hero-attribution line going missing across five separate documented
+    occurrences (agent-rdf-memory/howto/kg-curation-attribution.ttl).
+    """
+    return (
+        "KG curated by "
+        f'<a href="{KG_GENERATOR_URL}" target="_blank" rel="noopener noreferrer">kg-generator</a>, '
+        f'<a href="{RDF_INFOGRAPHIC_SKILL_URL}" target="_blank" rel="noopener noreferrer">rdf-infographic-skill</a>, '
+        f'and <a href="{llm_url}" target="_blank" rel="noopener noreferrer">{llm_name}</a> '
+        f'on behalf of <a href="{principal_resolver}" target="_blank" rel="noopener noreferrer">{principal_name}</a>'
+    )
+
+
+DAV_GRAPH_BASE = "https://linkeddata.uriburner.com/DAV/demos/daas/"
+
+
+def compute_dav_graph_iri(rdf_filename: str) -> str:
+    """The SPARQL GRAPH/FROM IRI for a generated artifact once uploaded to URIBurner.
+
+    This is NEVER the same as the document/base IRI (the source URL used for
+    entity resolver links) — see the skill's own "Document IRI vs SPARQL GRAPH
+    IRI" rule. Confusing the two was a documented contract gap: the SPARQL
+    workbench's graph selector and recipes previously scoped queries to the
+    source document IRI, which URIBurner has no named graph for, instead of
+    the DAV path the file is actually uploaded to.
+    """
+    return DAV_GRAPH_BASE + rdf_filename
+
+
+def build_canonical_entity_summary_query(dav_graph_iri: str) -> str:
+    """The canonical entity-type-summary query mandated by the Footer SPARQL
+    Button contract: SAMPLE-based projection, GROUP BY type, no default-graph-uri
+    URL parameter, no FILTER(STRSTARTS(...)) workaround."""
+    return (
+        "SELECT ?type (SAMPLE(?s) AS ?sampleEntity) (SAMPLE(?label) AS ?sampleLabel) (COUNT(?s) AS ?entityCount)\n"
+        "WHERE {\n"
+        f"  GRAPH <{dav_graph_iri}> {{\n"
+        "    ?s a ?type .\n"
+        "    OPTIONAL { ?s rdfs:label|<http://schema.org/name> ?label }\n"
+        "  }\n"
+        "}\n"
+        "GROUP BY ?type\n"
+        "ORDER BY DESC(?entityCount)"
+    )
+
+
+def build_sparql_btn_href(dav_graph_iri: str) -> str:
+    """href for the required <a id="sparqlBtn"> CTA — SELECT format, no
+    default-graph-uri= parameter (the GRAPH clause carries the scope)."""
+    query = build_canonical_entity_summary_query(dav_graph_iri)
+    encoded = quote(query, safe="")
+    return (
+        "https://linkeddata.uriburner.com/sparql?default-graph-uri=&query="
+        f"{encoded}&format=text%2Fx-html%2Btr&timeout=0&debug=on&run=+Run+Query+"
+    )
+
+
+def build_sparql_recipes(base_iri: str, dav_graph_iri: str) -> list[dict]:
     return [
         {
             "label": "All triples (sample)",
-            "query": f"SELECT ?s ?p ?o\nWHERE {{ ?s ?p ?o }}\nLIMIT 25",
+            "query": f"SELECT ?s ?p ?o\nWHERE {{ GRAPH <{dav_graph_iri}> {{ ?s ?p ?o }} }}\nLIMIT 25",
         },
         {
             "label": "Entity types summary",
-            "query": f"SELECT ?type (COUNT(?s) AS ?count)\nWHERE {{ ?s a ?type }}\nGROUP BY ?type\nORDER BY DESC(?count)",
+            "query": build_canonical_entity_summary_query(dav_graph_iri),
         },
         {
             "label": "Named graph triples",
-            "query": f"SELECT ?s ?p ?o\nFROM <{base_iri}>\nWHERE {{ ?s ?p ?o }}\nLIMIT 25",
+            "query": f"SELECT ?s ?p ?o\nFROM <{dav_graph_iri}>\nWHERE {{ ?s ?p ?o }}\nLIMIT 25",
         },
     ]
 
@@ -207,6 +370,8 @@ def assemble_html(
     tagline: str = "",
     hero_tagline: str = "",
     meta_html: str = "",
+    llm_name: str = "Claude Sonnet 5",
+    llm_url: str = "https://www.anthropic.com/claude",
 ) -> bool:
     """Assemble a complete HTML infographic from an RDF file.
 
@@ -215,6 +380,11 @@ def assemble_html(
     rdf_path = Path(rdf_path)
     output_path = Path(output_path)
     stem = rdf_path.stem
+
+    # KG-curation attribution defaults on unless the caller explicitly overrides
+    # meta_html — see render_hero_meta docstring for why this is not opt-in.
+    if not meta_html:
+        meta_html = render_hero_meta(llm_name=llm_name, llm_url=llm_url)
 
     # Resolve base IRI
     base_iri = get_base_iri(rdf_path)
@@ -246,11 +416,14 @@ def assemble_html(
     print(f"  Sections: {', '.join(sections)}")
 
     # Build JSON-LD
-    jsonld_content = render_jsonld(title, description, base_iri, rdf_rel)
+    jsonld_content = render_jsonld(title, description, base_iri, rdf_rel, llm_name=llm_name, llm_url=llm_url)
 
-    # Build SPARQL recipes
-    sparql_recipes = build_sparql_recipes(base_iri)
+    # Build SPARQL recipes — scoped to the DAV-uploaded graph IRI, never the
+    # document/base IRI (see compute_dav_graph_iri docstring).
+    dav_graph_iri = compute_dav_graph_iri(rdf_filename)
+    sparql_recipes = build_sparql_recipes(base_iri, dav_graph_iri)
     default_sparql = sparql_recipes[0]["query"]
+    sparql_btn_href = build_sparql_btn_href(dav_graph_iri)
 
     # Load assets
     css_content = load_asset("styles.css")
@@ -278,6 +451,8 @@ def assemble_html(
         "narrative_html": narrative_html,
         "sparql_recipes": sparql_recipes,
         "default_sparql": default_sparql,
+        "dav_graph_iri": dav_graph_iri,
+        "sparql_btn_href": sparql_btn_href,
         "source_url": source_url,
         "source_label": source_label,
     }

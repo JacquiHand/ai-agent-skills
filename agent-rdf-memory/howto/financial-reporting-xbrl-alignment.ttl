@@ -1,0 +1,39 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<> a schema:HowTo ;
+    schema:name "Financial Reporting Ontology Alignment — SEC/EDGAR and XBRL-Sourced Content"@en ;
+    schema:description "Rules for aligning financial-statement line items (revenue, operating income, expense categories, other-income components, etc.) to standards-body financial reporting vocabularies when generating a Knowledge Graph from an SEC/EDGAR filing or similar XBRL-tagged financial source."@en ;
+    schema:dateCreated "2026-08-06T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-06T00:00:00Z"^^xsd:dateTime ;
+    schema:step :gate-xbrlPriorityForSecSources, :gate-verifyFromActualInstance, :gate-usGaapPrimarySubject, :gate-nonGaapFallback .
+
+# ── Gate 1: XBRL/us-gaap is the required standards-body vocabulary for SEC/EDGAR sources ──
+
+:gate-xbrlPriorityForSecSources a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Financial-statement line items sourced from an SEC/EDGAR filing (10-K, 10-Q, 8-K financials, etc.) MUST be aligned to the FASB US-GAAP XBRL taxonomy, not left as bare literal labels"@en ;
+    schema:text """Every SEC-filed periodic report (10-K/10-Q) is required to carry XBRL tags from the FASB US-GAAP taxonomy for its financial-statement line items (revenue, gross margin/profit, operating income, net income, EPS, expense categories, other-income components, tax metrics, etc.). This is a standards-body vocabulary that ALREADY EXISTS for exactly this content — it takes priority over inventing local terms or leaving table/row labels as unlinked plain text, under the same 'standards-body/platform IRI first' priority rule already applied to DefinedTerm/glossary entities generally (see canonical-entity-iri-denotation.ttl). Gap first caught 2026-08-06 on a Microsoft FY2026 MD&A knowledge graph: financial-statement line items in both the RDF and the HTML tables (Revenue, Gross margin, Operating income, Net income, Diluted EPS, R&D/Sales&Marketing/G&A expense, Other Income components) were rendered as plain labels/prose with no vocabulary alignment at all, despite the source being a 10-K with an accompanying XBRL instance document in the same EDGAR accession."""@en .
+
+# ── Gate 2: Verify tags from the filing's own XBRL instance, never assume from memory ──
+
+:gate-verifyFromActualInstance a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Fetch the filing's own XBRL instance document and verify exact tag names/values before aligning — do not guess standard-sounding us-gaap element names from memory"@en ;
+    schema:text """SEC EDGAR filing accessions expose the XBRL instance alongside the primary document. Procedure: (1) fetch {accession-dir}/index.json to list files; (2) locate the *_htm.xml instance document (or the R*.htm human-readable viewer pages); (3) grep for the exact dollar/numeric value already used in the generated RDF/HTML (e.g. the literal '331839000000') to find the actual <us-gaap:ElementName> tag Microsoft/the filer used for that line item — filers often use company-specific or less-obvious standard elements (e.g. Microsoft's FY2026 10-K uses us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax for total revenue, not the generic us-gaap:Revenues; us-gaap:SellingAndMarketingExpense not SellingGeneralAndAdministrativeExpense; us-gaap:InvestmentIncomeNet for interest-and-dividends income; us-gaap:InterestExpenseNonoperating for interest expense). (4) Confirm the taxonomy namespace from the instance root element's xmlns:us-gaap declaration (e.g. http://fasb.org/us-gaap/2025 for a filing dated mid-2026 — taxonomy versions lag the filing year) rather than assuming a namespace year. This satisfies the no-fabricated-URLs policy's tier-3 (validated documented pattern, every component verified) since the namespace is tool-verified from the file and the local element name is tool-verified via grep against a known value, not recalled from training data."""@en .
+
+# ── Gate 3: The us-gaap concept IRI is the PRIMARY SUBJECT, never a local alias with owl:sameAs ──
+
+:gate-usGaapPrimarySubject a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Mint the us-gaap concept IRI itself as the term entity's primary subject; use schema:about (not owl:sameAs) to connect it from an existing local section/analysis entity that discusses it"@en ;
+    schema:text """Follows the same canonical-subject rule already applied to DBpedia/Wikidata alignment: when a confirmed standards-body IRI exists, that IRI IS the entity's subject — never create a document-local alias with owl:sameAs pointing to it. Concept IRI form: {taxonomy-namespace}#{ElementName} (e.g. http://fasb.org/us-gaap/2025#GrossProfit), bound via a us-gaap: prefix. Group the minted concept entities under a schema:DefinedTermSet (e.g. :financialConceptsSection) linked from the main analysis via schema:hasPart/schema:isPartOf, exactly like the existing glossary pattern. Do NOT use owl:sameAs to connect an existing local ARTICLE-SECTION entity (e.g. :researchAndDevelopmentExpense, which carries its own narrative/analysis text) to the us-gaap concept — the section and the abstract GAAP concept are different entity types (CreativeWork vs. DefinedTerm); use schema:about instead. Every visible table row/column-header label for a mapped concept MUST be hyperlinked through the resolver to the us-gaap concept IRI (not left as plain text), matching the same resolver-link contract already required for every other visible semantic entity in the document."""@en .
+
+# ── Gate 4: Non-GAAP / company-extension measures fall back to local terms ──
+
+:gate-nonGaapFallback a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Non-GAAP measures (adjusted net income, adjusted EPS, etc.) have no standard us-gaap concept — keep them as document-local schema:DefinedTerm entities, do not force a standards-body alignment that does not exist"@en ;
+    schema:text """Non-GAAP reconciliation line items (e.g. 'Adjusted net income (non-GAAP)', 'Adjusted diluted EPS (non-GAAP)') are company-defined and are typically tagged, if at all, with a filer-specific extension taxonomy element (e.g. a msft: namespace in the filing's own .xsd), not a FASB US-GAAP standard concept. Do not fabricate a us-gaap alignment for these — fall back to the document-local hash IRI tier of the standard DefinedTerm priority ladder (standards-body/platform → DBpedia → Wikidata → document-local), same as any other term with no confirmed external authority."""@en .

@@ -9,9 +9,9 @@
 @prefix opal: <https://www.openlinksw.com/ontology/opal/> .
 
 <> a schema:CreativeWork ;
-    schema:name "Agent Memory Ontology"@en ;
-    schema:description "Custom vocabulary for the agent RDF memory system, defining classes for generated artifacts, source articles, memory write triggers, and their relationships."@en ;
-    schema:dateModified "2026-07-14T19:30:00Z"^^xsd:dateTime ;
+    schema:name "Agent Memory Ontology Document"@en ;
+    schema:description "Document about the custom vocabulary for the agent RDF memory system, defining classes for generated artifacts, source articles, memory write triggers, and their relationships."@en ;
+    schema:dateModified "2026-08-04T00:00:00Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :memoryOntology .
 
@@ -26,26 +26,26 @@
 :GeneratedArtifact a rdfs:Class ;
     rdfs:label "Generated Artifact"@en ;
     rdfs:comment "An RDF, HTML, or MD file generated from a source URL using kg-generator and rdf-infographic-skill."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :SourceArticle a rdfs:Class ;
     rdfs:label "Source Article"@en ;
     rdfs:comment "A web article used as the source for knowledge graph generation."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :hasSource a owl:ObjectProperty, owl:FunctionalProperty, owl:AsymmetricProperty, owl:IrreflexiveProperty ;
     rdfs:label "has source"@en ;
     rdfs:comment "Links a generated artifact to the single source article it was produced from."@en ;
     rdfs:domain :GeneratedArtifact ;
     rdfs:range :SourceArticle ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :hasArtifactPath a owl:DatatypeProperty, owl:FunctionalProperty ;
     rdfs:label "has artifact path"@en ;
     rdfs:comment "Links a generated artifact to its single local filesystem path."@en ;
     rdfs:domain :GeneratedArtifact ;
     rdfs:range xsd:string ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # ── Memory Write Trigger Vocabulary ──────────────────────────────────────────
 
@@ -93,7 +93,7 @@
     rdfs:comment "A single agent interaction session. Equivalent to opal:ChatSession — the local class exists so reasoners can classify both new opal-modeled sessions and legacy schema:CreativeWork sessions under a common type."@en ;
     rdfs:subClassOf schema:CreativeWork ;
     owl:equivalentClass opal:ChatSession ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # Cross-reference: local schema:description → opal aggregate
 # A session's schema:description is an aggregated textual summary of the
@@ -112,7 +112,7 @@
 # schema:author on a :Session (pointing to a foaf:Person or schema:Person)
 # is semantically equivalent to opal:user on an opal:ChatSession.
 schema:author rdfs:subPropertyOf opal:user ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # Property: schema:hasPart on sessions maps to opal:hasMessage (partial)
 # schema:hasPart links a session to its generated artifacts; opal:hasMessage
@@ -121,7 +121,7 @@ schema:author rdfs:subPropertyOf opal:user ;
 # session-contained resources. We use rdfs:seeAlso rather than subPropertyOf
 # to avoid incorrect entailments.
 schema:hasPart rdfs:seeAlso opal:hasMessage ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # Property: prov:wasGeneratedBy on sessions maps to opal:usesTools
 # When a session artifact lists prov:wasGeneratedBy pointing to a skill
@@ -129,7 +129,7 @@ schema:hasPart rdfs:seeAlso opal:hasMessage ;
 # opal:usesTools is true. Not structurally equivalent (prov links to
 # artifact output, opal links to message), but semantically related.
 prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # What a reasoner CAN infer from these axioms:
 #   - Old sessions typed as :Session or schema:CreativeWork can be classified
@@ -156,7 +156,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     rdfs:comment "A workflow activity that mandates an immediate write to the agent session memory file."@en ;
     schema:name "Memory Write Trigger"@en ;
     schema:description "A narrow subclass of both prov:Activity and event:Event (rdfs:subClassOf, not owl:equivalentClass — event:Event is the generic Event Ontology top class, far broader than this trigger vocabulary) representing a discrete workflow event that triggers a mandatory write to sessions/YYYY-MM-DD-{llm-id}-{agent-env}.ttl."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :hasTrigger a owl:ObjectProperty, owl:AsymmetricProperty, owl:IrreflexiveProperty ;
     rdfs:label "has trigger"@en ;
@@ -164,7 +164,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     schema:name "has trigger"@en ;
     rdfs:domain schema:HowToStep ;
     rdfs:range :MemoryWriteTrigger ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # ── Trigger Instances ─────────────────────────────────────────────────────────
 
@@ -207,13 +207,13 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     rdfs:comment "Recorded on a session entity to indicate that memory was loaded via direct filesystem reads. Range is xsd:boolean; value true means file reads were the chosen or actual load path for this session."@en ;
     rdfs:domain schema:Event ;
     rdfs:range xsd:boolean ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :usedSparqlEndpoint a owl:ObjectProperty ;
     rdfs:label "used SPARQL endpoint"@en ;
     rdfs:comment "Recorded on a session entity to indicate that memory was loaded via a SPARQL endpoint. The value is the endpoint URL (schema:URL or xsd:anyURI)."@en ;
     rdfs:domain schema:Event ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # ── Symbolic Short-Term Log Offloading Vocabulary ────────────────────────────
 #
@@ -244,21 +244,21 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     rdfs:label "Offloaded Log"@en ;
     rdfs:comment "A raw, verbatim tool-output blob written outside the live session context, addressed by one or more IRIs rather than embedded inline."@en ;
     schema:description "Represents one offloaded tool-call result. Its location(s) are carried via prov:atLocation (reused from PROV-O rather than a custom property) so the same class works whether the content lives as a local file, a WebDAV resource, or a Virtuoso named graph — or more than one of these at once."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :SessionSymbolNode a rdfs:Class ;
     rdfs:subClassOf schema:Thing ;
     rdfs:label "Session Symbol Node"@en ;
     rdfs:comment "The compact in-context stand-in for an OffloadedLog. Always minted as its own IRI (urn:agent-rdf-memory:node:{session-id}:{slug}) — never a blank node distinguished by a literal identifier property."@en ;
     schema:description "A lightweight, resolvable reference the agent keeps in its reasoning instead of the raw offloaded content. The {slug} local-name segment (n3, n4, ...) is part of the IRI itself and doubles as the short prose label ('see node n3')."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :offloadsTo a owl:ObjectProperty ;
     rdfs:label "offloads to"@en ;
     rdfs:comment "Links a SessionSymbolNode IRI to the OffloadedLog IRI holding its raw content."@en ;
     rdfs:domain :SessionSymbolNode ;
     rdfs:range :OffloadedLog ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 # ── Prompt Intent and SPARQL Context Routing Vocabulary ──────────────────────
 #
@@ -273,93 +273,93 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     rdfs:subClassOf schema:Intangible ;
     rdfs:label "Prompt Intent"@en ;
     rdfs:comment "A classified task intent derived from the user's prompt and used to route targeted RDF memory context."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :RetrievalPolicy a rdfs:Class ;
     rdfs:subClassOf schema:Intangible ;
     rdfs:label "Retrieval Policy"@en ;
     rdfs:comment "A policy describing whether context retrieval should prefer a SPARQL endpoint, local files, URIBurner, or a user-specified endpoint."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :ContextSource a rdfs:Class ;
     rdfs:subClassOf schema:Intangible ;
     rdfs:label "Context Source"@en ;
     rdfs:comment "A source category used by the memory harness, such as ontology.ttl, preferences.ttl, index.ttl, howto documents, and session graphs."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :EndpointTemplate a rdfs:Class ;
     rdfs:subClassOf schema:Intangible ;
     rdfs:label "Endpoint Template"@en ;
     rdfs:comment "A templated SPARQL endpoint and graph-base description. {CNAME} is substituted with the selected local, remote, or user-specified target."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :routesToTopic a owl:ObjectProperty ;
     rdfs:label "routes to topic"@en ;
     rdfs:comment "Links a PromptIntent to the preference topic that contains the governing operational rules."@en ;
     rdfs:domain :PromptIntent ;
     rdfs:range schema:Thing ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :requiresHowTo a owl:ObjectProperty ;
     rdfs:label "requires howto"@en ;
     rdfs:comment "Links a PromptIntent to a howto RDF document that must be consulted when that intent applies."@en ;
     rdfs:domain :PromptIntent ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :optionalHowTo a owl:ObjectProperty ;
     rdfs:label "optional howto"@en ;
     rdfs:comment "Links a PromptIntent to a howto RDF document that may be consulted when the prompt's details require it."@en ;
     rdfs:domain :PromptIntent ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :retrievalPolicy a owl:ObjectProperty ;
     rdfs:label "retrieval policy"@en ;
     rdfs:comment "Links a PromptIntent to its preferred context retrieval policy."@en ;
     rdfs:domain :PromptIntent ;
     rdfs:range :RetrievalPolicy ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :requiresRecentSession a owl:DatatypeProperty ;
     rdfs:label "requires recent session"@en ;
     rdfs:comment "Boolean flag indicating that the harness must retrieve recent or intent-relevant session context."@en ;
     rdfs:domain :PromptIntent ;
     rdfs:range xsd:boolean ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :preferredContextSource a owl:ObjectProperty ;
     rdfs:label "preferred context source"@en ;
     rdfs:comment "Links a PromptIntent to the context source categories that should be queried first."@en ;
     rdfs:domain :PromptIntent ;
     rdfs:range :ContextSource ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :triggerPhrase a owl:DatatypeProperty ;
     rdfs:label "trigger phrase"@en ;
     rdfs:comment "Lexical hint used only for intent classification or fallback retrieval; context selection should follow structured ontology links once intent is known."@en ;
     rdfs:domain :PromptIntent ;
     rdfs:range xsd:string ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :endpointUrlTemplate a owl:DatatypeProperty ;
     rdfs:label "endpoint URL template"@en ;
     rdfs:comment "Templated SPARQL endpoint URL. https://{CNAME}/sparql is the general endpoint pattern, including localhost when HTTPS is selected; http://localhost:8890/sparql is a local-only Virtuoso endpoint pattern and must not be generalized to non-local CNAME values."@en ;
     rdfs:domain :EndpointTemplate ;
     rdfs:range xsd:string ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :graphBaseTemplate a owl:DatatypeProperty ;
     rdfs:label "graph base template"@en ;
     rdfs:comment "Templated named-graph IRI base used in generated context-selector queries. Local Virtuoso imports may use urn:dav:/DAV/... graph IRIs even when entity IRIs use http:/DAV/... bases."@en ;
     rdfs:domain :EndpointTemplate ;
     rdfs:range xsd:string ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :entityBaseTemplate a owl:DatatypeProperty ;
     rdfs:label "entity base template"@en ;
     rdfs:comment "Templated entity IRI base used for prefixes and VALUES subjects inside imported RDF graphs. This may differ from the named graph IRI base."@en ;
     rdfs:domain :EndpointTemplate ;
     rdfs:range xsd:string ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :sparqlEndpointPreferred a :RetrievalPolicy ;
     schema:name "SPARQL endpoint preferred"@en ;
@@ -401,7 +401,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     rdfs:subClassOf :PromptIntent ;
     rdfs:label "SPARQL Task"@en ;
     rdfs:comment "Prompt intent involving SPARQL query construction, diagnosis, endpoint usage, or result interpretation."@en ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :VirtuosoSparqlTroubleshooting a owl:Class ;
     rdfs:subClassOf :SparqlTask ;
@@ -414,7 +414,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :IndexContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "SPARQL compiler", "Virtuoso 37000", "SP031", "bif:contains", "describe page", "default-graph-uri", "format=text/x-html+tr" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :RdfAuthoringTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -424,7 +424,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "RDF", "Turtle", "JSON-LD", "IRI", "blank node", "schema:about" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :IdentityWebIdTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -434,7 +434,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "whoami", "who am I", "WebID", "delegation", "On-Behalf-Of", "NetID" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :ArtifactRoutingTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -444,7 +444,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "output path", "save", "artifact", "DAV", "publish", "route" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :KgExplorerTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -454,7 +454,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "KG Explorer", "D3", "graph visualization", "SPARQL workbench", "harness" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :MemoryProtocolTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -464,7 +464,7 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :IndexContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "memory protocol", "agent-rdf-memory", "preferences.ttl", "index.ttl", "ontology.ttl", "sessions" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .
 
 :SkillWorkflowTask a owl:Class ;
     rdfs:subClassOf :PromptIntent ;
@@ -474,4 +474,4 @@ prov:wasGeneratedBy rdfs:seeAlso opal:usesTools ;
     :requiresRecentSession true ;
     :preferredContextSource :OntologyContextSource, :PreferencesContextSource, :HowToContextSource, :SessionContextSource ;
     :triggerPhrase "skill", "workflow", "kg-only", "URIBurner", "data-twingler", "SPARQL endpoint" ;
-    rdfs:isDefinedBy : .
+    rdfs:isDefinedBy :memoryOntology .

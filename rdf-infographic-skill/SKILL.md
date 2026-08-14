@@ -1157,6 +1157,7 @@ Navigation state persistence **MUST** handle these edge cases:
 - [ ] HTML parses without errors (no unclosed tags, valid attributes).
 - [ ] JavaScript syntax is valid (no missing brackets, undefined references, or silent failures in the nav IIFE).
 - [ ] Associated RDF document parses without errors and passes the `validate-kg-compliance.sh` audit.
+- [ ] If the companion RDF declares an `owl:Ontology` entity, it is its own distinct resource (never a second `rdf:type` on the document's `<>` entity) and its `schema:name`/`schema:description` are textually differentiated from the document entity's — never identical strings on both (e.g. document: "{Ontology Name} Document"; ontology: "{Ontology Name}"). See `agent-rdf-memory/howto/ontology-document-name-differentiation.ttl`.
 - [ ] Every `schema:SoftwareApplication` uses the denotation priority rule: DBpedia IRI if confirmed, else Wikidata IRI if confirmed, else official homepage URL with `#this`; non-DBpedia/non-Wikidata software IRIs include `owl:sameAs` to confirmed DBpedia/Wikidata identities when such identities exist.
 - [ ] Every `schema:Country` uses the denotation priority rule: DBpedia IRI if confirmed, else Wikidata IRI if confirmed, else source-grounded document IRI; confirmed DBpedia/Wikidata equivalents are connected with `owl:sameAs`.
 - [ ] Every resolver entity hyperlink in the HTML resolves to a valid `describe/?url=` URL (no double-encoding: `%2523` is invalid; `#` must encode to `%23` exactly once).

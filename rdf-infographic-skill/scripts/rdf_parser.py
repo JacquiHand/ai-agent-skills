@@ -67,11 +67,18 @@ def extract_label(uri: URIRef, g: Graph) -> str:
 
 
 def extract_description(uri: URIRef, g: Graph) -> str:
-    """Extract description/comment for a URI."""
+    """Extract description/comment/body text for a URI.
+
+    Checks rdfs:comment and schema:description first (short summaries),
+    then falls back to schema:text (the body of HowToStep, Answer, etc.,
+    which carries the actual content and must not be dropped).
+    """
     for desc in g.objects(uri, RDFS.comment):
-        return str(desc)[:200]
+        return str(desc)[:400]
     for desc in g.objects(uri, SCHEMA.description):
-        return str(desc)[:200]
+        return str(desc)[:400]
+    for desc in g.objects(uri, SCHEMA.text):
+        return str(desc)[:400]
     return ""
 
 
@@ -151,12 +158,49 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
     g.parse(str(rdf_path))
 
     result = {
+        "synopsis": None,
         "faq": [],
         "glossary": [],
         "howto": [],
         "people": [],
         "organizations": [],
+        "sections": [],
     }
+
+    # Synopsis: the main article/report entity — prefer schema:Article, then
+    # any subject with the most schema:hasPart links (the de facto hub node).
+    main_entity = None
+    for candidate in g.subjects(RDF.type, SCHEMA.Article):
+        main_entity = candidate
+        break
+    if main_entity is None:
+        best_count = -1
+        for s in set(g.subjects(SCHEMA.hasPart, None)):
+            count = len(list(g.objects(s, SCHEMA.hasPart)))
+            if count > best_count:
+                best_count = count
+                main_entity = s
+    if main_entity is not None:
+        headline = ""
+        for h in g.objects(main_entity, SCHEMA.headline):
+            headline = str(h)
+            break
+        if not headline:
+            headline = extract_label(main_entity, g) if isinstance(main_entity, URIRef) else ""
+        abstract = ""
+        for a in g.objects(main_entity, SCHEMA.abstract):
+            abstract = str(a)
+            break
+        if not abstract:
+            for a in g.objects(main_entity, SCHEMA.articleBody):
+                abstract = str(a)[:600]
+                break
+        if headline or abstract:
+            result["synopsis"] = {
+                "headline": headline,
+                "abstract": abstract,
+                "iri": str(main_entity) if isinstance(main_entity, URIRef) else "",
+            }
 
     # FAQ
     for faq in g.subjects(RDF.type, SCHEMA.FAQPage):
@@ -254,6 +298,83 @@ def extract_narrative(rdf_path: str | Path, base_iri: str) -> dict:
                 "description": desc,
                 "iri": str(org) if isinstance(org, URIRef) else "",
             })
+
+    # Generic narrative content sections (article-body substance beyond
+    # FAQ/glossary/HowTo/People/Organizations) — e.g. a schema:CreativeWork
+    # or schema:ItemList that is schema:hasPart of the main article, whose
+    # own children carry the actual analysis. Without this, an infographic
+    # can pass every structural check while silently dropping the source's
+    # substantive narrative (see generator-script-output-not-a-substitute-
+    # for-contract-check.ttl for the recurring pattern this closes).
+    if main_entity is not None:
+        excluded_types = {SCHEMA.FAQPage, SCHEMA.DefinedTermSet, SCHEMA.HowTo, OWL.Ontology}
+        excluded_iris = set()
+        for faq in g.subjects(RDF.type, SCHEMA.FAQPage):
+            excluded_iris.add(faq)
+        for ts in g.subjects(RDF.type, SCHEMA.DefinedTermSet):
+            excluded_iris.add(ts)
+        for ht in g.subjects(RDF.type, SCHEMA.HowTo):
+            excluded_iris.add(ht)
+        for onto in g.subjects(RDF.type, OWL.Ontology):
+            excluded_iris.add(onto)
+
+        for part in g.objects(main_entity, SCHEMA.hasPart):
+            if not isinstance(part, URIRef) or part in excluded_iris:
+                continue
+            part_types = set(g.objects(part, RDF.type))
+            if not (part_types & {SCHEMA.CreativeWork, SCHEMA.ItemList}) or (part_types & excluded_types):
+                continue
+            sec_name = extract_label(part, g)
+            if not sec_name:
+                continue
+            sec_abstract = ""
+            for a in g.objects(part, SCHEMA.abstract):
+                sec_abstract = str(a)
+                break
+            if not sec_abstract:
+                for a in g.objects(part, SCHEMA.description):
+                    sec_abstract = str(a)
+                    break
+
+            # Children: entities that declare schema:isPartOf this section
+            # (schema:hasPart / schema:itemListElement give the same set via
+            # the inverse-relationship contract), excluding media objects.
+            child_iris = set(g.subjects(SCHEMA.isPartOf, part))
+            child_iris |= set(g.objects(part, SCHEMA.hasPart))
+            child_iris |= set(g.objects(part, SCHEMA.itemListElement))
+            children = []
+            for child in child_iris:
+                if not isinstance(child, URIRef) or child == part:
+                    continue
+                child_types = set(g.objects(child, RDF.type))
+                if child_types & {SCHEMA.ImageObject, SCHEMA.VideoObject, SCHEMA.AudioObject}:
+                    continue
+                c_name = extract_label(child, g)
+                if not c_name:
+                    continue
+                c_desc = extract_description(child, g)
+                c_pos = None
+                for p in g.objects(child, SCHEMA.position):
+                    try:
+                        c_pos = int(p)
+                    except (TypeError, ValueError):
+                        pass
+                    break
+                children.append({
+                    "name": c_name,
+                    "description": c_desc,
+                    "iri": str(child),
+                    "position": c_pos if c_pos is not None else 9999,
+                })
+            children.sort(key=lambda c: c["position"])
+
+            if sec_abstract or children:
+                result["sections"].append({
+                    "name": sec_name,
+                    "abstract": sec_abstract,
+                    "iri": str(part),
+                    "items": children,
+                })
 
     return result
 

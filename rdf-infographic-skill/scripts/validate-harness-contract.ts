@@ -109,8 +109,11 @@ async function main(): Promise<number> {
   requireAny(html, ['id="arrowStyle"', 'arrow', 'marker-end'], "Arrow style/directed arrows missing");
   forbidRegex(html, /(value=["']dual["']|arrowStyle\s*=\s*['"]dual['"]|>\s*Dual\b)/s, "Dual-arrow option/default found — KG Explorer edges must be single, directed (subject-to-object) arrowheads only; use 'directed'/'none', never 'dual'");
   forbidRegex(html, /marker-start\s*[:=]\s*['"]?url\(#/s, "marker-start found on a KG Explorer edge — edges must carry marker-end only (single directed arrowhead), never a start-side arrowhead implying bidirectionality");
-  require(html, 'd3@7', "D3 runtime missing");
+  requireAnyRegex(html, [/<script src="https:\/\/d3js\.org\/d3\.v7[^"]*"/, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/d3@7\/[^"]*"/], "D3 runtime script tag missing or using a non-resolving URL (e.g. https://d3js.org/d3@7, which 404s — use d3.v7.min.js or the jsdelivr path)");
   requireAny(html, ['clickDistance(6)', 'd3.drag()', '.drag()'], "D3 drag behavior missing");
+  requireAny(html, ['d3.zoom(', 'd3.zoom ('], "D3 zoom (whole-graph pan/zoom) missing — SKILL.md Validation Checklist requires 'KG Explorer D3 zoom is focus-activated'");
+  requireAny(html, ['kg-active', 'kgActive'], "KG zoom-isolation visual indicator (kg-active class) missing");
+  requireAnyRegex(html, [/on\(['"]\.zoom['"],\s*null\)/], "Zoom isolation release handler missing — outside click must call svg.on('.zoom', null) to detach, per SKILL.md's zoom-isolation requirement (never attach zoom on init)");
   requireAnyRegex(html, [/\.append\(['"]a['"]\)[\s\S]{0,200}(href|xlink:href)/, /<a[^>]+href="https:\/\/linkeddata\.uriburner\.com\/describe\/\?url=/], "Resolver-backed SVG/label anchors missing");
   requireAny(html, ["xlink:href", ".attr('href'", '.attr("href"', 'href="https://linkeddata.uriburner.com/describe/?url='], "Resolver href missing");
   requireAny(html, ['data-resolver-href', 'describe/?url=', 'RESOLVER'], "KG resolver href audit/pattern missing");
@@ -118,12 +121,22 @@ async function main(): Promise<number> {
   // ── SPARQL explorer ─────────────────────────────────────────────────────────
   requireAny(html, ['id="sparql-explorer"', 'sparql-explore-box', 'Explore Knowledge Graph'], "Footer SPARQL explorer missing");
   requireAny(html, ['id="sparqlGraph"', 'SPARQL_GRAPH', 'Named graph'], "Footer named graph selector/IRI missing");
-  requireAny(html, ['id="sparqlRecipe"', 'exploreQueries', 'liveQueries', 'Query recipe'], "Footer query recipe selector/quick links missing");
-  requireAny(html, ['id="sparqlText"', '<textarea', 'liveQueries', 'exploreQueries'], "Footer editable SPARQL textarea or query recipes missing");
+  // A single visible canonical query block (sparql-block/sparql-code, per footer-sparql-explorer-gate.ttl
+  // Gate 2/4) is an explicitly sanctioned replacement for the interactive recipe selector — not a gap.
+  requireAny(html, ['id="sparqlRecipe"', 'exploreQueries', 'liveQueries', 'Query recipe', 'sparql-accordion', 'sparql-block', 'sparql-code'], "Footer query recipe selector/quick links missing");
+  requireAny(html, ['id="sparqlText"', '<textarea', 'liveQueries', 'exploreQueries', 'sparql-code'], "Footer editable SPARQL textarea or query recipes missing");
   requireAny(html, ['id="sparqlFormat"', 'text/x-html+tr', 'text%2Fx-html%2Btr'], "Footer SPARQL format display/guidance missing");
   require(html, 'text/x-html+tr', "SELECT result format guidance missing");
   require(html, 'text/x-html-nice-turtle', "DESCRIBE/CONSTRUCT result format guidance missing");
   require(html, 'encodeURIComponent', "SPARQL live link encoding missing");
+
+  // Footer SPARQL Button with Format Toggle contract (SKILL.md): a dedicated
+  // id="sparqlBtn" CTA, scoped to the DAV-uploaded graph IRI (never the source
+  // document IRI), using the canonical SAMPLE-based entity-summary query.
+  require(html, 'id="sparqlBtn"', 'Footer SPARQL \'Explore Knowledge Graph using SPARQL\' CTA (id="sparqlBtn") missing');
+  require(html, 'DAV/demos/daas/', "SPARQL queries not scoped to the DAV-uploaded graph IRI (https://linkeddata.uriburner.com/DAV/demos/daas/{filename}) — see 'Document IRI vs SPARQL GRAPH IRI' rule");
+  requireAny(html, ['sampleEntity', 'SAMPLE(?s)', 'SAMPLE%28%3Fs%29'], "Canonical entity-type-summary query (SAMPLE(?s) AS ?sampleEntity ...) missing from SPARQL button/recipes");
+  requireAny(html, ['entityCount', 'entityCount)', '%3FentityCount'], "Canonical entity-type-summary query's ?entityCount projection missing");
 
   // ── Attribution items ───────────────────────────────────────────────────────
   for (const label of [
@@ -141,6 +154,23 @@ async function main(): Promise<number> {
   require(html, "https://linkeddata.uriburner.com/describe/?url=", "URIBurner resolver pattern missing");
   require(html, "https://linkeddata.uriburner.com/sparql", "URIBurner SPARQL endpoint missing");
   require(html, "https://virtuoso.openlinksw.com/", "OpenLink Virtuoso attribution missing");
+
+  // ── KG-curation attribution (agent-rdf-memory/howto/kg-curation-attribution.ttl) ──
+  // Documented as a recurring miss (5 occurrences); this is a blocking gate now,
+  // not just memory/grep discipline.
+  require(html, "KG curated by", "Hero-meta 'KG curated by ... on behalf of' attribution line missing");
+  require(html, "on behalf of", "Hero-meta delegation phrase ('on behalf of') missing");
+  requireAny(html, ['"accountablePerson"', "'accountablePerson'"], "JSON-LD accountablePerson missing");
+  requireAny(html, ['"prov:actedOnBehalfOf"', "'prov:actedOnBehalfOf'"], "JSON-LD prov:actedOnBehalfOf missing");
+  if (html.includes("prov:actedOnBehalfOf")) {
+    const badTargetRe = /"prov:actedOnBehalfOf"\s*:\s*\{\s*"@id"\s*:\s*"([^"]*(?:anthropic\.com|openai\.com|github\.com)[^"]*)"/g;
+    const badTargets: string[] = [];
+    let bm: RegExpExecArray | null;
+    while ((bm = badTargetRe.exec(html)) !== null) badTargets.push(bm[1]);
+    if (badTargets.length) {
+      fail(`prov:actedOnBehalfOf points at a tool/LLM IRI instead of the human principal: ${badTargets.join(", ")}`);
+    }
+  }
 
   // ── Link target discipline ──────────────────────────────────────────────────
   const anchorRe = /<a\s+[^>]*href="([^"]+)"[^>]*>/g;
@@ -183,8 +213,13 @@ async function main(): Promise<number> {
     fail("Edge label SVG anchors missing — .pred-anchor a pattern not found in CSS or JS");
   if (!html.includes('id="sparqlBtn"'))
     fail('SPARQL explore button id="sparqlBtn" missing');
-  if (!/\.on\(["']click["'][\s\S]{0,200}resolv/.test(html))
-    fail("Node click handler missing resolver call — nodes must open resolver on click");
+  // Accepted: (a) a plain .on('click', ...) resolver call, or (b) the click-distance-guard
+  // pattern (kg-explorer-d3-patterns.ttl step-clickGuard) measured in drag.on('end') --
+  // this is the CORRECT pattern and must not be rejected for lacking a separate click handler.
+  const hasPlainClick = /\.on\(["']click["'][\s\S]{0,200}resolv/i.test(html);
+  const hasClickGuard = /on\(["']end["'][\s\S]{0,500}(?:dist|distance)[\s\S]{0,150}<\s*6[\s\S]{0,300}resolv/i.test(html);
+  if (!hasPlainClick && !hasClickGuard)
+    fail("Node click handler missing resolver call — nodes must open resolver on click (via .on('click', ...) or the click-distance-guard pattern in drag.on('end'))");
 
   // ── RDF file checks (Phase 2 will add full parse) ──────────────────────────
   await validateRdf(args.ttl, "turtle");
