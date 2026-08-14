@@ -1,0 +1,46 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: <summary> Elements Never Inherit h1-h4 Heading Styles — Always Restate the Font Explicitly"@en ;
+    schema:description "Root-cause fix for a recurring card/section aesthetic-uniformity complaint on rdf-infographic-skill's KG Explorer / SPARQL Workbench section-level accordions. Companion to preferences.ttl Step 188."@en ;
+    schema:dateCreated "2026-08-12T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :accordionSummaryHeadingGap ;
+    rdfs:seeAlso <../preferences.ttl#step-accordionSummaryHeadingInheritance>,
+        <footer-sparql-explorer-gate.ttl> .
+
+:accordionSummaryHeadingGap a schema:HowTo ;
+    schema:name "<summary> tags must have their heading typography (font-family/size/weight) restated explicitly, matched to the page's real h2 — CSS heading rules keyed to h1..h4 selectors do not apply to <summary>"@en ;
+    schema:description "When a section-level (or any) accordion uses <details><summary>Title</summary>...</details> instead of wrapping a real <h1>-<h4> element, any sitewide CSS rule scoped to those tag selectors (e.g. `h1,h2,h3,h4{font-family:'Poppins'}` and `h2{font-size:1.8rem}`) silently does NOT apply to the <summary> text, because <summary> is not one of those tag names. The summary falls back to the page's base body font/size, producing a visibly different typeface, size, and weight than every other section title on the page — read by users as 'card distortion' or 'inconsistent styling' even though every other CSS token (border-radius, padding, box-shadow, background) may already match perfectly."@en ;
+    schema:step :step-symptom, :step-diagnose, :step-fix, :step-incident ;
+    schema:workExample :workExample-kgExplorerSparqlWorkbench .
+
+:step-symptom a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "Symptom: user reports a card/section 'looks distorted' or 'not uniform' with no further detail"@en ;
+    schema:text "This complaint is easy to misdiagnose as a spacing, radius, shadow, or color mismatch and fix by adjusting those tokens — when the actual cause is typography (font-family and/or font-size) diverging from the page's real heading elements. If a screenshot shows the title text visually smaller/lighter/different-typeface than titles on other sections of the SAME page, suspect this gap before touching spacing tokens."@en .
+
+:step-diagnose a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Diagnose: grep the CSS for which selector actually renders the summary text, then compare it against the sitewide h2 rule"@en ;
+    schema:text "Find the real h2{...} rule (font-family, font-size, font-weight if set) and the custom class applied to the <summary> or its inner title span. If the custom class does not explicitly restate font-family/font-size/font-weight matching h2, that is the bug — even if border-radius/padding/box-shadow/background all already match a shared .card-style rule. Tag selectors (h1,h2,h3,h4) never match a <summary>, <div>, or <span>, no matter how deeply nested inside a real <section>."@en .
+
+:step-fix a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Fix: restate the exact h2 typography (font-family, font-size, font-weight, and any responsive breakpoint override) on the accordion's title class — do not invent a new intermediate size"@en ;
+    schema:text "Copy the sitewide h2 rule's font-family/font-size/font-weight (and its @media breakpoint override, e.g. h2{font-size:1.4rem} at max-width:768px) onto the accordion title class verbatim. Resist the temptation to pick a 'close enough' custom size (e.g. 1.35rem when the real h2 is 1.8rem) — a hybrid size that matches neither the h2 scale nor the smaller card-header scale used elsewhere (~.9rem) reads as its own third, inconsistent tier and is exactly what triggers the 'distortion' complaint. Any icon/badge added alongside the title should then be re-scaled proportionally to the corrected (larger) title size."@en .
+
+:step-incident a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Incident record — caught 2026-08-12 on rdf-infographic-skill's KG Explorer / SPARQL Workbench section-accordions"@en ;
+    schema:text "The section-accordion-summary/.section-accordion-title class was custom-styled at font-size:1.35rem;font-weight:650 with no font-family override, so it rendered in the body's Inter font at a size between the real h2 (1.8rem, Poppins) and the smaller card-header scale (.9rem) used by glossary-term/comment-card/howto-content headers -- fitting neither convention. User flagged it twice: once via screenshot ('symmetry issues'), once via plain-text complaint calling it 'a repeating pattern' without a screenshot, correctly implying the root cause was structural (baked into the shared skill template, so it would recur on every future generation) rather than a one-off styling slip on a single document. Fixed at html_assembler.py/base_template.html/styles.css (the shared template), not by hand-patching one output file."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration .
+
+:workExample-kgExplorerSparqlWorkbench a schema:CreativeWork ;
+    schema:name "Worked example — .section-accordion-title fix"@en ;
+    schema:description "Before: .section-accordion-summary{font-size:1.35rem;font-weight:650} (no font-family, so it rendered in Inter, not Poppins). After: .section-accordion-title{font-family:'Poppins',sans-serif;font-size:1.8rem;font-weight:700} matching the sitewide h2{font-size:1.8rem} rule exactly, plus the matching @media(max-width:768px){.section-accordion-title{font-size:1.4rem}} responsive override already used by the real h2 rule. Icon size increased 24px->30px (20px->24px on mobile) to stay proportional to the corrected title scale."@en ;
+    schema:about :accordionSummaryHeadingGap .

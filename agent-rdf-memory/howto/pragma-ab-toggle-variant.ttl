@@ -1,0 +1,50 @@
+@prefix : <#> .
+@prefix schema: <http://schema.org/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix onto: <../ontology.ttl#> .
+
+<> a schema:CreativeWork ;
+    schema:name "HowTo: Every Virtuoso-Pragma Sample Query Gets a Commented-Pragma A/B Companion"@en ;
+    schema:description "Standing preference set 2026-08-13: any live, Execute-button-wired sample SPARQL query that relies on a Virtuoso query-level pragma (DEFINE input:same-as, DEFINE input:inference '<ruleset>', etc.) to demonstrate reasoning/entailment must be accompanied by a companion query that is byte-for-byte identical except the pragma line is a commented-out SPARQL '#' comment, so a reader can flip reasoning on/off with a one-character edit and immediately re-run to see the difference. Companion to preferences.ttl Step 199."@en ;
+    schema:dateCreated "2026-08-13T00:00:00Z"^^xsd:dateTime ;
+    schema:author <https://linkedin.com/in/kidehen#this> ;
+    schema:about :pragmaAbToggle ;
+    rdfs:seeAlso <../preferences.ttl#step-pragmaAbToggleVariant>,
+        <sparql-sample-query-self-containment-gate.ttl> .
+
+:pragmaAbToggle a schema:HowTo ;
+    schema:name "Commented-pragma A/B companion for every reasoning-pragma sample query"@en ;
+    schema:description "Direct user instruction, not a bug fix: 'Examples with Virtuoso pragmas should always be accompanied with variants where the pragma is commented out re A/B testing and demonstration of reasoning & inference.'"@en ;
+    schema:step :step-what, :step-why, :step-howBuilt, :step-worked, :step-scope .
+
+:step-what a schema:HowToStep ;
+    schema:position 1 ;
+    schema:name "What: a paired baseline query, not a prose explanation of the difference"@en ;
+    schema:text "Prose already existed describing 'without the pragma X, with it Y' for the sameAs entailment demo (:c4's documentation field showed both forms as separate blocks) — the user's instruction is specifically about the LIVE, clickable Execute-button cards in the SPARQL Workbench, which only had the pragma-ON version. A reader clicking Execute never saw the baseline for comparison without hand-editing the query themselves."@en .
+
+:step-why a schema:HowToStep ;
+    schema:position 2 ;
+    schema:name "Why: a one-character toggle (delete the leading '# ') is the fastest, most convincing way to demonstrate that a pragma — not something else — causes the observed difference"@en ;
+    schema:text "Two full separate query blocks (pragma-present vs. pragma-absent) already demonstrate the difference in prose, but a commented-out pragma IN THE SAME QUERY TEXT is strictly more convincing: the reader can see with their own eyes that the only textual difference between 'false' and 'true' (or '2 rows' and '71 rows') is one line, not a rewritten query that could hide other changes."@en .
+
+:step-howBuilt a schema:HowToStep ;
+    schema:position 3 ;
+    schema:name "Implementation: comment the pragma line with a trailing instruction, keep everything else identical, name the companion card explicitly as the A/B baseline for its sibling"@en ;
+    schema:text """Pattern used for :demoQ10 (companion to :demoQ5) and :demoQ11 (companion to :demoQ9):
+  # DEFINE input:same-as "yes"   -- uncomment this line to enable reasoning and compare results
+  PREFIX : <...#>
+  ASK { ... }  (or SELECT ...)
+schema:name for the companion explicitly says 'A/B baseline for QN: same [ASK|SELECT] with the reasoning pragma commented out'. Each sibling's own rdfs:comment cross-references the other by :name ('See :demoQ11 for the pragma-commented A/B variant' / 'identical to :demoQ9 except the pragma is commented out'). Both directions of the cross-reference were added, not just one."""@en .
+
+:step-worked a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "Both companion queries were verified live before being written into the document, per the standing self-containment-gate discipline"@en ;
+    schema:text "demoQ10 (commented pragma, ASK): verified false. demoQ11 (commented pragma, SELECT): verified 2 rows. Both match the previously-verified pragma-OFF baseline exactly, confirming the '#' comment genuinely disables the pragma rather than producing a parse error or an unrelated result."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration.
+
+:step-scope a schema:HowToStep ;
+    schema:position 5 ;
+    schema:name "Scope note: only applied to queries with a VERIFIED-working pragma; :c12's owl:equivalentClass pragma (unregistered ruleset, pending the user running a provided .sql script) was explicitly left without an A/B companion until the ruleset is confirmed registered"@en ;
+    schema:text "Adding a commented-toggle companion implies 'uncomment this and it will work' — writing that implication for a pragma not yet confirmed working would itself be an unverified claim, the exact failure mode this whole session has been correcting. Once the user confirms the rdfs_rule_set() registration succeeded, :c12 should get the same demoQ10/demoQ11-style treatment with its own live verification first."@en ;
+    onto:hasTrigger onto:triggerBehaviorGapIdentified .

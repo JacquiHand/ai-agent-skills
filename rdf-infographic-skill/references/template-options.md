@@ -29,6 +29,35 @@ Characteristics:
 - Footer SPARQL workbench with named graph and query recipe selectors.
 - Full attribution card set.
 
+### Competitive / Head-to-Head Analysis
+
+Asset: `assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html`
+
+Best for:
+
+- Sources that compare **two or more** named platforms, products, systems, harnesses, or vendors.
+- Feature matrices, capability scoreboards, and tabulated peer comparisons (including Grok/X share tables).
+
+Characteristics worth preserving:
+
+- Premium dark aesthetic, hero dual-badges, horizontal timeline.
+- **Responsive dual comparison presentation (skill contract item 15):**
+  - `.comparison-table-view` — semantic multi-column matrix for viewports **≥901px**
+  - `.comparison-cards-view` — one product card per entity for viewports **≤900px**
+  - Identical facts in both views; CSS-only switch at 900px; no JS required for the switch
+  - Resolver-linked entity names in table headers **and** card headers
+  - **Each aspect/dimension described in companion TTL** and **resolver-linked in the first column** of every comparison table row (and matching card row labels)
+  - Overflow-safe cells (`min-width:0`, `overflow-wrap:anywhere`)
+- Two-column capability panels that collapse to one column on narrow screens.
+- Glossary/FAQ/HowTo patterns consistent with the harness contract.
+
+Required adaptations before reuse:
+
+- Substitute compared entities and matrix cells from the companion RDF (do not invent competitors).
+- Keep dual markup when the matrix has ≥2 entity columns — do **not** ship a phone-only horizontal-scroll table.
+- Retrofit full harness features (nav collapsed default, theme toggle, KG Explorer, SPARQL workbench, attribution cards) if the shell is used as a visual reference rather than a complete page.
+- Verify both viewports before delivery (table visible at desktop; cards visible at ~390px).
+
 ### Claude Sonnet 4 Gartner Dashboard
 
 Asset: `assets/templates/gartner-da-london-2026-claude-sonnet4-dashboard.html`

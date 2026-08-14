@@ -32,6 +32,7 @@
     </span>
     <div style="display:flex;align-items:center;gap:2px">
       <button class="theme-btn theme-toggle" id="themeToggle" aria-label="Toggle dark mode" style="width:auto;height:28px;padding:0 6px;display:flex;align-items:center;gap:3px;background:none;border:none;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text);transition:background .2s" title="Toggle dark mode">🌓</button>
+      <button id="nav-hide" aria-label="Hide navigation" title="Hide" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;border-radius:6px;font-size:13px;color:var(--text)">✕</button>
       <button id="nav-toggle" aria-label="Expand navigation" title="Expand">+</button>
     </div>
   </div>
@@ -58,13 +59,26 @@
   </div>
 </section>
 
-<!-- Narrative Sections -->
-{{ narrative_html }}
+<!-- Narrative Sections (primary: synopsis/analysis/people/organizations) -->
+{{ narrative_html_primary }}
 
-<!-- KG Explorer -->
+<!-- KG Explorer and SPARQL Workbench MUST precede FAQ/Glossary/HowTo: they
+     are how a reader interacts with the underlying data directly, and the
+     reference material below assumes that exploration has already happened.
+     See preferences.ttl step-explorerPrecedesReference /
+     howto/explorer-precedes-reference.ttl. -->
+
+<!-- KG Explorer — always-visible section (no accordion); id="kg-explorer"
+     kept unchanged so nav anchors, CSS (#kg-explorer.kg-active) and JS
+     (getElementById) all keep working exactly as before. -->
 <section class="section section-alt" id="kg-explorer">
-  <h2>Knowledge Graph Explorer<a class="headline-anchor" href="#kg-explorer" aria-label="Link to this section">¶</a></h2>
-  <p>Interactive graph visualization derived from the companion RDF. Click nodes to resolve, drag to explore. <span style="font-size:12px;color:var(--text-secondary)">Graph data embedded from companion RDF at generation time.</span></p>
+  <h2 class="section-heading-flex">
+    <span class="section-accordion-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2.4"/><circle cx="19" cy="6" r="2.4"/><circle cx="12" cy="12" r="2.4"/><circle cx="6" cy="19" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M7.1 7.4 10.3 10.6M16.9 7.4 13.7 10.6M10.5 13.9 7.6 17.6M13.5 13.9 16.4 17.6"/></svg></span>
+    <span>Knowledge Graph Explorer</span>
+    <span class="section-accordion-stat">{{ kg_node_count }} nodes &middot; {{ kg_link_count }} links</span>
+    <a class="headline-anchor" href="#kg-explorer" aria-label="Link to this section">¶</a>
+  </h2>
+  <p style="margin-top:0">Interactive graph visualization derived from the companion RDF. Click nodes to resolve, drag to explore. <span style="font-size:12px;color:var(--text-secondary)">Graph data embedded from companion RDF at generation time.</span></p>
 
   <div id="kg-explorer">
     <div class="kg-header">
@@ -137,14 +151,21 @@
   </div>
 </section>
 
-<!-- SPARQL Workbench -->
-<section class="section" id="sparql-explorer">
-  <h2>Explore Knowledge Graph using SPARQL<a class="headline-anchor" href="#sparql-explorer" aria-label="Link to this section">¶</a></h2>
-  <p>Query the companion RDF data using SPARQL. Use the default endpoint or copy queries to your own SPARQL client.</p>
-  <p style="margin-bottom:20px"><a id="sparqlBtn" href="{{ sparql_btn_href }}" target="_blank" rel="noopener noreferrer" class="cta-btn" style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--accent);color:#fff;border-radius:12px;text-decoration:none;font-weight:600;font-size:0.95rem">Explore Knowledge Graph using SPARQL</a></p>
+<!-- SPARQL Workbench — always-visible section (no accordion), single SPARQL
+     surface (no redundant footer "Explore KG" CTA). id="sparql-explorer"
+     kept unchanged so nav anchors and existing JS/CSS are untouched. -->
+<section class="section section-alt" id="sparql-explorer">
+  <h2 class="section-heading-flex">
+    <span class="section-accordion-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 9h10M4 13h16M4 17h7"/><path d="M19 13v8m-3.5-3.5L19 21l3.5-3.5" stroke-width="2"/></svg></span>
+    <span>SPARQL Workbench</span>
+    <span class="section-accordion-stat">{{ sparql_query_label }}</span>
+    <a class="headline-anchor" href="#sparql-explorer" aria-label="Link to this section">¶</a>
+  </h2>
+  <p style="margin-top:0">Query this knowledge graph on URIBurner. The editor opens on the canonical SAMPLE entity-type summary (DAV named graph). Pick a recipe, edit freely, then run live or copy.</p>
+  {{ sample_query_cards_html }}
   <div class="sparql-card">
     <div class="sparql-card-header">
-      <h3>SPARQL Query Workbench</h3>
+      <h3>Query editor</h3>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <select id="sparqlGraph" style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;background:var(--card-bg);color:var(--text)">
           <option value="">Default Graph</option>
@@ -159,62 +180,99 @@
     </div>
     <div class="sparql-body">
       <label for="sparqlText">SPARQL Query</label>
-      <textarea id="sparqlText" placeholder="SELECT * WHERE { ?s ?p ?o } LIMIT 25">{{ default_sparql }}</textarea>
+      <textarea id="sparqlText" class="sparql-code" placeholder="SELECT * WHERE { ?s ?p ?o } LIMIT 25">{{ default_sparql }}</textarea>
       <div class="sparql-actions">
-        <button id="sparqlRun" class="primary">▶ Run</button>
-        <a id="sparqlLiveLink" href="https://linkeddata.uriburner.com/sparql" target="_blank" rel="noopener noreferrer" class="primary sparql-run-btn">🔗 Run live</a>
-        <button id="sparqlCopy">📋 Copy</button>
+        {# id=sparqlBtn: harness-required live CTA; pre-built SAMPLE href; single surface with workbench.
+           This is the only visible "run" control -- a separate #sparqlRun button used to exist here but
+           its click handler only did window.open(sparqlBtn.href), i.e. it was a no-op duplicate of this
+           link. Removed rather than hidden so it can't reappear as visual redundancy. #}
+        <a id="sparqlBtn" href="{{ sparql_btn_href }}" target="_blank" rel="noopener noreferrer" class="primary sparql-run-btn cta-btn">▶ Run live on URIBurner</a>
+        <a id="sparqlLiveLink" href="{{ sparql_btn_href }}" target="_blank" rel="noopener noreferrer" class="primary sparql-run-btn" hidden aria-hidden="true">🔗 Run live</a>
+        <button id="sparqlCopy" type="button">📋 Copy</button>
         <span id="sparqlFormat" style="font-size:11px;color:var(--text-secondary);align-self:center">SELECT: text/x-html+tr | DESCRIBE/CONSTRUCT: text/x-html-nice-turtle</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Attribution Footer -->
+<!-- Narrative Sections (reference: FAQ/glossary/HowTo) -->
+{{ narrative_html_reference }}
+
+<!-- Attribution Footer — polished stock shell (prior-artifact-footer-polish-gate) -->
 <section class="footer-attribution" id="footer">
-  <div class="section">
+  <div class="footer-inner">
+    <p class="footer-kicker">Provenance</p>
     <h2>Attribution &amp; Provenance<a class="headline-anchor" href="#footer" aria-label="Link to this section">¶</a></h2>
-    <p style="font-size:.88rem;color:var(--text-secondary);margin-bottom:1rem">Source material, companion files, skills used, generation environment, and extraction provenance.</p>
+    <p class="footer-lead">Where this knowledge graph came from, how it was built, and the tools that produced this page. Live SPARQL exploration is in the <a href="#sparql-explorer">SPARQL Workbench</a> section above.</p>
+
     <div class="attr-grid">
       <div class="attr-card">
         <h4>Source material</h4>
-        {% if source_url %}
-        <p><a href="{{ source_url }}" target="_blank" rel="noopener noreferrer">{{ source_label or source_url }}</a></p>
-        {% endif %}
+        <div class="soft-list">
+          {% if source_url %}
+          <p><a href="{{ source_url }}" target="_blank" rel="noopener noreferrer">{{ source_label or source_url }}</a></p>
+          {% else %}
+          <p>Source document linked from the companion RDF base IRI.</p>
+          {% endif %}
+        </div>
       </div>
       <div class="attr-card">
         <h4>Companion files</h4>
-        <p>RDF: <a href="{{ rdf_rel_path }}" target="_blank" rel="noopener noreferrer">{{ rdf_filename }}</a></p>
-        <p>HTML: <a href="{{ output_filename }}" target="_blank" rel="noopener noreferrer">{{ output_filename }}</a></p>
+        <div class="soft-list">
+          <p>RDF Turtle · <a class="path-chip" href="{{ rdf_rel_path }}" target="_blank" rel="noopener noreferrer">{{ rdf_filename }}</a></p>
+          <p>This page · <a class="path-chip" href="{{ output_filename }}" target="_blank" rel="noopener noreferrer">{{ output_filename }}</a></p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Skills used</h4>
-        <p><a href="https://github.com/anomalyco/opencode-skills/tree/main/rdf-infographic-skill" target="_blank" rel="noopener noreferrer">rdf-infographic-skill</a></p>
-        <p><a href="https://github.com/anomalyco/opencode-skills/tree/main/kg-generator" target="_blank" rel="noopener noreferrer">kg-generator</a></p>
+        <div class="soft-list">
+          <p><a href="https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/kg-generator" target="_blank" rel="noopener noreferrer">kg-generator</a></p>
+          <p><a href="https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill" target="_blank" rel="noopener noreferrer">rdf-infographic-skill</a></p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Generation environment</h4>
-        <p>RDF Infographic Generator v1</p>
-        <p><a href="https://python.org" target="_blank" rel="noopener noreferrer">Python</a> + <a href="https://rdflib.readthedocs.io" target="_blank" rel="noopener noreferrer">rdflib</a> + <a href="https://jinja.palletsprojects.com" target="_blank" rel="noopener noreferrer">Jinja2</a></p>
+        <div class="soft-list">
+          <p><a href="{{ llm_url }}" target="_blank" rel="noopener noreferrer">{{ llm_name }}</a>{% if agent_env %} · {{ agent_env }}{% endif %}</p>
+          <p>rdflib parse + harness validation</p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Linked Data runtime</h4>
-        <p><a href="https://virtuoso.openlinksw.com/" target="_blank" rel="noopener noreferrer">OpenLink Virtuoso</a></p>
-        <p><a href="https://linkeddata.uriburner.com/" target="_blank" rel="noopener noreferrer">URIBurner Linked Data Dashboard</a></p>
+        <div class="soft-list">
+          <p><a href="https://linkeddata.uriburner.com/" target="_blank" rel="noopener noreferrer">URIBurner</a> (Virtuoso-backed)</p>
+          <p><a href="https://virtuoso.openlinksw.com/" target="_blank" rel="noopener noreferrer">OpenLink Virtuoso</a></p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Named graphs</h4>
-        <p><a href="{{ base_iri }}" target="_blank" rel="noopener noreferrer">{{ base_iri }}</a></p>
+        <div class="soft-list">
+          <p>Document base · <a href="{{ base_iri }}" target="_blank" rel="noopener noreferrer">source namespace</a></p>
+          <p>DAV load target · <a class="path-chip" href="{{ dav_graph_iri }}" target="_blank" rel="noopener noreferrer">DAV/demos/daas/{{ rdf_filename }}</a></p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Resolver pattern</h4>
-        <p><a href="https://linkeddata.uriburner.com/describe/?url=" target="_blank" rel="noopener noreferrer">https://linkeddata.uriburner.com/describe/?url={uri}</a></p>
+        <div class="soft-list">
+          <p><a href="https://linkeddata.uriburner.com/fct" target="_blank" rel="noopener noreferrer">URIBurner describe</a></p>
+          <p><span class="path-chip">https://linkeddata.uriburner.com/describe/?url={uri}</span></p>
+        </div>
       </div>
       <div class="attr-card">
         <h4>Extraction provenance</h4>
-        <p>Entities, relationships, and narrative extracted from companion RDF using rdflib. Graph data embedded at generation time.</p>
+        <p>Entities and narrative derived from the companion Turtle graph (kg-generator → rdf-infographic-skill). Graph payload embedded at generation time for offline exploration.</p>
       </div>
     </div>
+
+    <p class="footer-skills">
+      Generated using
+      <a href="https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/kg-generator" target="_blank" rel="noopener noreferrer">kg-generator</a>,
+      <a href="https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill" target="_blank" rel="noopener noreferrer">rdf-infographic-skill</a>
+      via <a href="{{ llm_url }}" target="_blank" rel="noopener noreferrer">{{ llm_name }}</a>.
+      Linked Data resolved via <a href="https://linkeddata.uriburner.com/" target="_blank" rel="noopener noreferrer">URIBurner</a>
+      (<a href="https://virtuoso.openlinksw.com/" target="_blank" rel="noopener noreferrer">Virtuoso</a>-backed).
+    </p>
+    <p class="footer-meta-line">KG curated by kg-generator, rdf-infographic-skill, and {{ llm_name }} on behalf of Kingsley Idehen · {{ generation_date }}</p>
   </div>
 </section>
 
@@ -267,6 +325,79 @@ const kgData = {{ kgdata_json }};
   });
 })();
 
+// Inactivity fade + manual hide (share one fade/reactivation path)
+(function() {
+  var nav = document.getElementById('floating-nav');
+  var hideBtn = document.getElementById('nav-hide');
+  var manuallyHidden = false;
+  var timer = null;
+  var marker = null;
+
+  var style = document.createElement('style');
+  style.textContent = '#floating-nav{transition:opacity .8s ease}#nav-reactivate{position:fixed;z-index:10000;width:34px;height:34px;border-radius:50%;background:var(--panel-strong,#222);color:var(--text,#fff);border:1px solid var(--line,#444);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.3)}';
+  document.head.appendChild(style);
+
+  function getMarker() {
+    if (marker) return marker;
+    marker = document.createElement('button');
+    marker.id = 'nav-reactivate';
+    marker.setAttribute('aria-label', 'Show navigation');
+    marker.title = 'Show navigation';
+    marker.textContent = '☰';
+    document.body.appendChild(marker);
+    marker.addEventListener('click', function(e) {
+      e.stopPropagation();
+      manuallyHidden = false;
+      nav.style.opacity = '1';
+      nav.style.pointerEvents = 'auto';
+      marker.style.display = 'none';
+      resetTimer();
+    });
+    return marker;
+  }
+
+  function positionMarker() {
+    var rect = nav.getBoundingClientRect();
+    var m = getMarker();
+    m.style.top = rect.top + 'px';
+    m.style.left = rect.left + 'px';
+  }
+
+  function fadeOut() {
+    positionMarker();
+    nav.style.opacity = '0';
+    nav.style.pointerEvents = 'none';
+    getMarker().style.display = 'flex';
+  }
+
+  function resetTimer() {
+    if (manuallyHidden) return;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(fadeOut, 120000);
+  }
+
+  ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(function(evt) {
+    document.addEventListener(evt, function() {
+      if (manuallyHidden) return;
+      nav.style.opacity = '1';
+      nav.style.pointerEvents = 'auto';
+      if (marker) marker.style.display = 'none';
+      resetTimer();
+    }, { passive: true });
+  });
+
+  if (hideBtn) {
+    hideBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      manuallyHidden = true;
+      if (timer) clearTimeout(timer);
+      fadeOut();
+    });
+  }
+
+  resetTimer();
+})();
+
 // Scroll animations
 (function(){
   var observer = new IntersectionObserver(function(entries) {
@@ -275,6 +406,34 @@ const kgData = {{ kgdata_json }};
     });
   }, { threshold: 0.1 });
   document.querySelectorAll('.anim-fade').forEach(function(el) { observer.observe(el); });
+})();
+
+// Auto-open any <details> ancestor of a same-page anchor target (nav links,
+// pilcrow headline-anchors) so navigating to a fragment nested inside a
+// collapsed <details> (e.g. an individual .sparql-card sample query) doesn't
+// scroll to a collapsed, seemingly-empty area. #kg-explorer and
+// #sparql-explorer themselves are no longer wrapped in a section-level
+// accordion (removed 2026-08-12 per explicit user request), so this is now
+// a no-op for those two IDs specifically but still applies to any nested
+// <details> content.
+(function(){
+  function revealTarget() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (!id) return;
+    var el = document.getElementById(id);
+    if (!el) return;
+    var d = el.closest('details');
+    var openedAny = false;
+    while (d) {
+      if (!d.open) { d.open = true; openedAny = true; }
+      d = d.parentElement ? d.parentElement.closest('details') : null;
+    }
+    // Opening a details after the browser already scrolled to the (then-
+    // collapsed) target shifts layout; re-align once expansion settles.
+    if (openedAny) { requestAnimationFrame(function() { el.scrollIntoView(); }); }
+  }
+  window.addEventListener('hashchange', revealTarget);
+  revealTarget();
 })();
 
 // FAQ accordion
@@ -287,20 +446,25 @@ const kgData = {{ kgdata_json }};
   });
 })();
 
-// SPARQL workbench
+// SPARQL Workbench — single surface; #sparqlBtn is the live CTA (pre-built SAMPLE href + live updates)
 (function(){
   var textarea = document.getElementById('sparqlText');
   var recipe = document.getElementById('sparqlRecipe');
+  var sparqlBtn = document.getElementById('sparqlBtn');
   var liveLink = document.getElementById('sparqlLiveLink');
-  var runBtn = document.getElementById('sparqlRun');
   var copyBtn = document.getElementById('sparqlCopy');
   var endpoint = 'https://linkeddata.uriburner.com/sparql';
+  if (!textarea) return;
 
   function updateLiveLink() {
     var q = textarea.value;
     var encoded = encodeURIComponent(q);
-    var graph = document.getElementById('sparqlGraph').value;
-    liveLink.href = endpoint + '?default-graph-uri=' + encodeURIComponent(graph) + '&query=' + encoded + '&format=text%2Fx-html%2Btr&timeout=0&debug=on&run=+Run+Query+';
+    var graphEl = document.getElementById('sparqlGraph');
+    var graph = graphEl ? graphEl.value : '';
+    // Prefer GRAPH-scoped query body (recipes already include GRAPH); keep format contract.
+    var href = endpoint + '?default-graph-uri=&query=' + encoded + '&format=text%2Fx-html%2Btr&timeout=0&debug=on&run=+Run+Query+';
+    if (sparqlBtn) sparqlBtn.href = href;
+    if (liveLink) liveLink.href = href;
   }
 
   if (recipe) {
@@ -312,14 +476,39 @@ const kgData = {{ kgdata_json }};
   textarea.addEventListener('input', updateLiveLink);
   updateLiveLink();
 
-  if (runBtn) {
-    runBtn.addEventListener('click', function() { window.open(liveLink.href, '_blank', 'noopener,noreferrer'); });
-  }
   if (copyBtn) {
     copyBtn.addEventListener('click', function() {
       navigator.clipboard.writeText(textarea.value).catch(function() {});
     });
   }
+})();
+
+// Sample query cards -- each has its own Execute button. Executing loads the
+// query into the shared workbench textarea/live-link above (same endpoint,
+// same mechanism -- these cards are part of the one SPARQL Workbench, not a
+// second surface) and opens the live query in a new tab in one click.
+(function() {
+  var dataEl = document.getElementById('sampleQueriesData');
+  if (!dataEl) return;
+  var queries = JSON.parse(dataEl.textContent);
+  var textarea = document.getElementById('sparqlText');
+  var recipe = document.getElementById('sparqlRecipe');
+  document.querySelectorAll('[data-sample-query-index]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(btn.getAttribute('data-sample-query-index'), 10);
+      var q = queries[idx];
+      if (!q) return;
+      textarea.value = q.query;
+      textarea.dispatchEvent(new Event('input'));
+      if (recipe) {
+        for (var i = 0; i < recipe.options.length; i++) {
+          if (recipe.options[i].value === q.query) { recipe.selectedIndex = i; break; }
+        }
+      }
+      var liveLink = document.getElementById('sparqlLiveLink');
+      window.open(liveLink.href, '_blank', 'noopener,noreferrer');
+    });
+  });
 })();
 
 // KG Explorer (must be after kgData is defined)

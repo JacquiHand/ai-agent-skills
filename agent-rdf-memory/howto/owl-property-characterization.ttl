@@ -12,7 +12,7 @@
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:step :step-applyCategories, :step-applicationRules, :step-symmetry,
         :step-cardinality, :step-hierarchy, :step-inverse, :step-composition,
-        :step-verificationGate ;
+        :step-verificationGate, :step-recurrence20260812 ;
     schema:workExample :workExample-categoryCatalog, :workExample-defaultTemplate ;
     rdfs:seeAlso <../preferences.ttl#step-owlPropertyCharacterization>, <../preferences.ttl#step-edgePropertyTyping>,
         <ontology-cross-reference-gate.ttl> .
@@ -100,3 +100,11 @@ Category 9 — Class-based Constraints: owl:someValuesFrom, owl:allValuesFrom, o
     rdfs:seeAlso <dbr:RelatedConcept> .
 
 This asserts: one value per subject (FunctionalProperty), the property is directional (AsymmetricProperty), and the subject cannot have this relationship with itself (IrreflexiveProperty). It is the most common pattern in study-oriented KGs."""@en .
+
+# ── Recurrence 2026-08-12 ────────────────────────────────────────────────────
+
+:step-recurrence20260812 a schema:HowToStep ;
+    schema:position 9 ;
+    schema:name "Both this gate AND ontology-cross-reference-gate.ttl were skipped end-to-end when minting a small staging ontology, not just partially applied"@en ;
+    schema:text """Minted a 4-term staging vocabulary (post:ProfessionalClaim, post:SemanticValueLevel as classes; post:hasSemanticValueLevel, post:revisionOf as owl:ObjectProperty) for a Turner-semantic-value RDF+HTML deliverable. post:hasSemanticValueLevel had domain+range but no rdfs:comment, no external cross-reference, and no OWL characteristic beyond typing. post:revisionOf -- the more obviously broken one -- had rdfs:subPropertyOf and rdfs:comment but was MISSING rdfs:domain/rdfs:range entirely, the one item both this gate and ontology-cross-reference-gate.ttl mark as absolutely mandatory (Category 1 / Step 2 respectively) with no exceptions. Neither class had rdfs:subClassOf or any external cross-reference at all. User: 'why are domain, range and other OWL attributes missing... There's a contract for ontology generation that hasn't been followed here.' This was not a case of the gate being unknown or ambiguous -- both gates were already fully specified in agent-rdf-memory before this ontology was minted; the checklist simply was not run against the four new terms before delivery. FIX applied: post:ProfessionalClaim got rdfs:subClassOf schema:Claim (verified real schema.org type via WebSearch before use, per external-iri-verification.ttl); post:SemanticValueLevel got rdfs:subClassOf skos:Concept (already implied by its instances carrying skos:prefLabel/skos:inScheme -- the cross-reference was sitting right there unused); post:hasSemanticValueLevel got rdfs:comment + owl:FunctionalProperty + an explicit 'checked, no broader property found' note; post:revisionOf got rdfs:domain/rdfs:range (post:ProfessionalClaim both directions) + owl:AsymmetricProperty + owl:IrreflexiveProperty + owl:FunctionalProperty. GENERAL RULE: the moment ANY custom owl:Class or owl:ObjectProperty is minted (even a minimal 2-4-term staging vocabulary that feels too small to warrant the full checklist), run both gates' verification steps against every new term before considering the RDF done -- 'small ontology' is not an exemption, and a domain/range omission is exactly as much a contract violation on a 2-property vocabulary as on a 20-property one."""@en ;
+    rdfs:seeAlso <ontology-cross-reference-gate.ttl>, <external-iri-verification.ttl> .

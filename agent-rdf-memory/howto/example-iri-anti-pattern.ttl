@@ -11,7 +11,7 @@
 
 :HowToExampleIriAntiPattern a schema:HowTo ;
     schema:name "Example IRI Anti-Pattern Gate"@en ;
-    schema:step :stepCheckSpecFirst, :stepRelativeHashFallback, :stepWhyExampleDomainFails .
+    schema:step :stepCheckSpecFirst, :stepRelativeHashFallback, :stepWhyExampleDomainFails, :stepAppliesToMintedOntologies .
 
 :stepCheckSpecFirst a schema:HowToStep ;
     schema:position 1 ;
@@ -27,3 +27,8 @@
     schema:position 3 ;
     schema:name "Why example.com/example.org undermines a Linked Data argument specifically"@en ;
     schema:text "example.com and example.org (RFC 2606 reserved documentation domains) are technically dereferenceable, which is why an earlier pass used them as a 'fix' for a prior urn:-scheme anti-pattern. But in a document whose central claim is 'hyperlinks are real, standards-based identifiers that connect to a shared graph,' a placeholder domain still reads as fake — it signals 'this identifier does not really participate in the graph,' which is the opposite of the point being illustrated. A real example (see stepCheckSpecFirst) or a relative hash IRI honestly scoped to the document (see stepRelativeHashFallback) both avoid this failure mode; example.com/example.org is a middle ground that satisfies the letter of 'use an HTTP IRI' while failing the spirit of the argument."@en .
+
+:stepAppliesToMintedOntologies a schema:HowToStep ;
+    schema:position 4 ;
+    schema:name "The gate is not limited to illustrative prose snippets — it covers the namespace of any genuinely-minted, on-the-fly ontology term in a deliverable"@en ;
+    schema:text "Incident (2026-08-12): minted a small staging vocabulary (:ProfessionalClaim, :SemanticValueLevel — terms not covered by oplli:/schema.org/PROV-O/W3C VC, correctly identified via the vocabulary-survey-then-mint-only-the-gap discipline) for a Turner-semantic-value RDF+HTML deliverable, and gave it the namespace https://example.org/semantic-value/ontology# — treating it as a throwaway placeholder rather than applying stepRelativeHashFallback, even though the document already had a real, document-anchored base available (the DAV-hosted URL this exact TTL would be published at, https://linkeddata.uriburner.com/DAV/demos/daas/{filename}#). User caught it after the fact: 'example.org domain IRIs are forbidden, isn't that in a gate?' Fixed by folding both the mini-ontology prefix and a separate example.org-based instance-data prefix into ONE hash-relative namespace anchored to the document's own DAV base (the same base already used elsewhere in the file for FAQ/glossary/HowTo entities), matching the single-prefix-per-document pattern used throughout the corpus (:KeyPrinciple, :ComparisonDimension, etc.). Applies whenever a real dereferenceable-once-published base is available for the document being authored — which is effectively always in this corpus, since every generated TTL has a known DAV target path before it is ever written."@en .

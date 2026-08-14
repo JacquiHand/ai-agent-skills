@@ -10,7 +10,7 @@
 <> a schema:CreativeWork ;
     schema:name "preferences.ttl"@en ;
     schema:description "Configuration for agent RDF memory management and semantic memory skill usage." ;
-    schema:dateModified "2026-07-30T16:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-11T22:10:00Z"^^xsd:dateTime ;
     schema:dateCreated "2026-05-29T17:22:00Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :agentBehaviorGuide .
@@ -205,7 +205,10 @@
         <howto/openlink-brand-color-scheme.ttl>,
         <howto/dav-public-url-default.ttl>,
         <howto/reader-facing-copy-gate.ttl>,
-        <howto/workbench-brevity-gate.ttl> ;
+        <howto/workbench-brevity-gate.ttl>,
+        <howto/responsive-comparison-presentation.ttl>,
+        <howto/prior-artifact-footer-polish-gate.ttl>,
+        <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> ;
     schema:step :step-attribution, :step-darkModeCSS, :step-kgExplorerReuse,
         :step-templateSelection, :step-kgNavPlacement, :step-kgNavCollapsed,
         :step-kgControlsMasterClose, :step-kgNoOrphans, :step-kgToolbarGroups,
@@ -224,7 +227,9 @@
         :step-noRawUrlDump, :step-edgeResolverHref, :step-entityLevelAuthorship,
         :step-resolverDoubleEncodingGate, :step-unclosedAnchorSwallowsBlock,
         :step-openlinkBrandColorScheme, :step-davPublicUrlDefault,
-        :step-readerFacingCopyGate, :step-workbenchBrevityGate .
+        :step-readerFacingCopyGate, :step-workbenchBrevityGate,
+        :step-responsiveComparisonPresentation,
+        :step-priorArtifactFooterPolishGate .
 
 # ── 6. Ontology Generation ──────────────────────────────────────────────────
 
@@ -1449,7 +1454,9 @@ Certificate paths:
     schema:name "Study proven patterns from prior output as input to execution plan construction, in line with operator request"@en ;
     schema:text "Before planning a new HTML infographic, study proven patterns from prior working outputs to inform — never blindly reproduce — a plan that reflects what the operator's prompt actually asks for."@en ;
     onto:hasTrigger onto:triggerSkillInvocation, onto:triggerPreferencesUpdate ;
-    rdfs:seeAlso <howto/study-prior-patterns.ttl> .
+    rdfs:seeAlso <howto/study-prior-patterns.ttl>,
+        <howto/prior-artifact-footer-polish-gate.ttl>,
+        :step-priorArtifactFooterPolishGate .
 
 :topicStudyPriorPatterns a schema:Thing ;
     schema:name "Study Prior Patterns, Don't Mandate Reuse"@en ;
@@ -2274,7 +2281,9 @@ Applies alongside step-screencastDistributionArtifacts (routing) and step-screen
     schema:name "rdf-infographic-skill's generate_infographic.py + its bundled validators check a narrower surface than the full contract; also, owl:sameAs alias IRIs must never be re-typed as full entities"@en ;
     schema:text "A generator script's own bundled validators passing is not proof of full-contract compliance, and owl:sameAs alias IRIs must stay untyped or the RDF-to-HTML extractor renders duplicate entity cards."@en ;
     onto:hasTrigger onto:triggerBehaviorGapIdentified, onto:triggerArtifactGeneration ;
-    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> .
+    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl>,
+        <howto/prior-artifact-footer-polish-gate.ttl>,
+        :step-priorArtifactFooterPolishGate .
 
 # ── Step 170: An ad hoc footer sparqlBtn patch must follow the documented Gate 2 structure, not a bare link ──
 
@@ -2401,3 +2410,200 @@ Applies alongside step-screencastDistributionArtifacts (routing) and step-screen
     schema:text "User-stated standing preference (2026-08-08): return a fully percent-encoded, ready-to-click SPARQL query URL as the primary deliverable, not just raw query text."@en ;
     onto:hasTrigger onto:triggerBehaviorGapIdentified ;
     rdfs:seeAlso <howto/sparql-explore-query-as-url.ttl>, <howto/footer-sparql-explorer-gate.ttl>, <howto/virtuoso-workbench-query-dedup.ttl> .
+
+# ── Step 183: Responsive head-to-head comparison (table large / cards small) ─
+
+:step-responsiveComparisonPresentation a schema:HowToStep ;
+    schema:position 183 ;
+    schema:name "Multi-entity comparison matrices MUST dual-present: table on large screens, product cards on phones"@en ;
+    schema:text """FALLBACK for rdf-infographic-skill when the skill text is not loaded. PRIMARY authority is rdf-infographic-skill SKILL.md 'Responsive Head-to-Head Comparison Presentation' and assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html.
+
+When HTML includes a head-to-head / multi-column comparison of two or more named products, platforms, systems, or offerings:
+1. Emit dual markup: .comparison-table-view (semantic table) AND .comparison-cards-view (one .comp-card per entity with dimension rows).
+2. CSS switch at 900px — table visible ≥901px; cards visible ≤900px. No JS required for the switch.
+3. Both views carry identical facts; entity names resolver-linked in table headers and card headers.
+4. Every comparison aspect MUST be a described TTL **instance** (schema:name+description) typed with a proper ontology class: reuse shared or corpus-canonical classes (e.g. cdx:ComparisonDimension) when they exist; only mint a new class under a distinct owl:Ontology entity when no shared/corpus term fits (ontology-discovery + cross-reference gates). The first column of each table body row (and matching card row labels) MUST resolver-link to that **instance** IRI — never plain-text aspect labels.
+5. Overflow-safe cells (min-width:0; overflow-wrap:anywhere); dark-mode via two separate selector blocks.
+6. Verify both viewports before delivery (table block at desktop; cards block at ~390px phone width).
+
+Do not ship a multi-column matrix that only horizontal-scrolls on phones. See howto/responsive-comparison-presentation.ttl."""@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/responsive-comparison-presentation.ttl>,
+        <howto/infographic-authoring.ttl>,
+        <https://github.com/OpenLinkSoftware/ai-agent-skills/tree/main/rdf-infographic-skill#this> .
+
+# ── Step 184: Prior-artifact footer / post-generator polish gate ─────────────
+
+:step-priorArtifactFooterPolishGate a schema:HowToStep ;
+    schema:position 184 ;
+    schema:name "BLOCKING GATE — before delivering any HTML infographic, open the newest same-model webpages/ artifact, port its footer and post-generator polish, and never treat harness PASS as aesthetic PASS"@en ;
+    schema:text "After generate_infographic.py or any stock HTML assembly, open the newest prior HTML under the active model's webpages/ root, port its footer and related post-generator polish (skills URLs, generation environment, explore CTA, prose Generated-using line, overflow-safe paths, DAV named graphs, hero-meta when present), clear stock-defect greps, and re-run the harness — harness PASS alone is never delivery-complete."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerSkillInvocation, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/prior-artifact-footer-polish-gate.ttl>,
+        <howto/study-prior-patterns.ttl>,
+        <howto/generator-script-output-not-a-substitute-for-contract-check.ttl>,
+        <howto/kg-explorer-reuse-first.ttl>,
+        <howto/infographic-authoring.ttl>,
+        <howto/kg-curation-attribution.ttl>,
+        <howto/footer-sparql-explorer-gate.ttl> .
+
+:topicPriorArtifactFooterPolish a schema:Thing ;
+    schema:name "Prior-artifact footer polish is a blocking delivery gate"@en ;
+    schema:description "Harness and generator validators do not prove footer aesthetics or skill/environment attribution correctness. Same-model webpages/ baseline open + port is mandatory before delivery. Incident: 2026-08-11 SynthID-Text stock footer vs same-day polished coding-agent-harness comparison."@en ;
+    rdfs:seeAlso <howto/prior-artifact-footer-polish-gate.ttl> .
+
+# ── Step 185: SPARQL-bearing sections are closed-by-default accordions (aesthetics + contract fix) ──
+
+:step-sparqlSectionsClosedAccordion a schema:HowToStep ;
+    schema:position 185 ;
+    schema:name "Wrap every SPARQL-bearing section — sample query cards AND the whole KG Explorer / SPARQL Workbench sections — in a closed-by-default <details> accordion"@en ;
+    schema:text "SKILL.md already required per-query <details>/<summary> accordions; rdf-infographic-skill's build_sample_query_cards generator silently rendered plain always-open <div> cards instead — another contract-vs-implementation gap in the same family as generator-script-output-not-a-substitute-for-contract-check.ttl. Fixed at the generator (html_assembler.py + base_template.html + styles.css), not by hand-patching one output file: per-query cards are now <details class=\"sparql-card\">, and the whole #kg-explorer and #sparql-explorer sections are each wrapped in an outer <details class=\"section-accordion\">, both closed by default, with a hashchange/on-load JS handler that auto-opens any <details> ancestor of a same-page anchor target so nav links still work. Caught two related bugs in the same pass: a #sparqlRun button whose click handler was a byte-for-byte duplicate of #sparqlBtn (window.open of the identical href — a second visible 'Run' control doing nothing new), and a CSS specificity bug where `.sparql-actions a{display:inline-flex}` silently defeated the `hidden` attribute on the legitimately-hidden #sparqlLiveLink proxy, making a third 'hidden' button visible anyway."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/footer-sparql-explorer-gate.ttl>,
+        <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> .
+
+# ── Step 186: no second attribution surface — "About This Page" was redundant with the footer, deleted at the generator ──
+
+:step-noSecondAttributionSurface a schema:HowToStep ;
+    schema:position 186 ;
+    schema:name "There is exactly ONE attribution/provenance surface per page — the footer #footer 'Attribution & Provenance' attr-grid — never a second mid-page 'About This Page' section"@en ;
+    schema:text "rdf-infographic-skill's build_about_section() generated a fully redundant mid-page section duplicating the footer attr-grid, so it was deleted at the generator (html_assembler.py) rather than patched in one output file."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/generator-script-output-not-a-substitute-for-contract-check.ttl> .
+
+# ── Step 187: owl-property-characterization.ttl and ontology-cross-reference-gate.ttl skipped end-to-end on a "small" 4-term ontology ──
+
+:step-smallOntologyNoExemption a schema:HowToStep ;
+    schema:position 187 ;
+    schema:name "Minting even a tiny 2-4-term staging ontology still requires the full owl-property-characterization.ttl + ontology-cross-reference-gate.ttl checklist per term — a small vocabulary is not an exemption"@en ;
+    schema:text "A minted post:revisionOf property was missing rdfs:domain/rdfs:range entirely (mandatory, no exceptions) and neither minted class/property had an external cross-reference, per the full incident writeup."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/owl-property-characterization.ttl>, <howto/ontology-cross-reference-gate.ttl> .
+
+# ── Step 188: <summary> elements never inherit h1-h4 heading CSS — restate typography explicitly on any accordion title ──
+
+:step-accordionSummaryHeadingInheritance a schema:HowToStep ;
+    schema:position 188 ;
+    schema:name "Any <details><summary> used as a section/card title must have its font-family/font-size/font-weight restated explicitly to match the page's real h2 — tag-selector CSS rules (h1,h2,h3,h4{...}) never apply to a <summary> element"@en ;
+    schema:text "Caught 2026-08-12 when a custom-sized accordion summary silently fell back to the body font at a size matching neither the sitewide h2 nor the card-header scale, reading as 'distorted'/'not uniform' despite matching border-radius/padding/shadow tokens."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/accordion-summary-heading-inheritance-gap.ttl>,
+        <howto/footer-sparql-explorer-gate.ttl> .
+
+# ── Step 189: KG Explorer and SPARQL Workbench MUST precede FAQ, Glossary, and HowTo in document order ──
+
+:step-explorerPrecedesReference a schema:HowToStep ;
+    schema:position 189 ;
+    schema:name "KG Explorer and SPARQL Workbench MUST precede FAQ, Glossary, and HowTo — they are how a reader interacts with the data directly; reference material assumes that exploration already happened"@en ;
+    schema:text "Fixed 2026-08-12 by splitting render_narrative() into primary/reference halves so base_template.html can sandwich the explorer/workbench accordions between them, instead of hardcoding the accordions after all narrative content."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/explorer-precedes-reference.ttl> .
+
+# ── Step 190: a SoftwareSourceCode entity nested inside ANY section must not duplicate its SPARQL Workbench Execute card ──
+
+:step-noNestedQueryCardDuplication a schema:HowToStep ;
+    schema:position 190 ;
+    schema:name "A schema:SoftwareSourceCode entity nested as a schema:hasPart child of any section (not just top-level) must not render as a second static card duplicating its SPARQL Workbench Execute card"@en ;
+    schema:text "The generic 'sections' child-extraction loop excluded media-object children but not SoftwareSourceCode, letting a hand-authored demo-data section duplicate its own SPARQL Workbench sample-query cards one-for-one."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/explorer-precedes-reference.ttl> .
+
+# ── Step 191: any container added outside .section/.section-alt needs its own explicit width cap ──
+
+:step-unconstrainedContainerWidth a schema:HowToStep ;
+    schema:position 191 ;
+    schema:name "Any container placed outside the .section/.section-alt system (a direct <body> child, or a footer sub-wrapper) needs its own explicit max-width:1100px;margin:0 auto cap restated — it does not inherit .section's constraint"@en ;
+    schema:text "The KG Explorer/SPARQL Workbench accordion wrapper had no max-width at all, and the footer's inner wrapper had a width cap but no padding of its own, so both rendered wider than every regular section's content box."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/explorer-precedes-reference.ttl> .
+
+# ── Step 192: card-grid containers use auto-fill, never auto-fit, or a lone card stretches full-width ──
+
+:step-cardGridAutoFitStretch a schema:HowToStep ;
+    schema:position 192 ;
+    schema:name "Every card-grid container (grid-template-columns:repeat(...,minmax(...))) MUST use auto-fill, never auto-fit — auto-fit stretches a lone or few card(s) edge-to-edge across the full row instead of staying compact and left-aligned"@en ;
+    schema:text "Fixed 2026-08-12 on .cards-grid and .attr-grid (both changed from auto-fit to auto-fill, matching .glossary-grid's already-correct convention) after single-card sections rendered stretched full-width and read as 'misaligned'."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/explorer-precedes-reference.ttl> .
+
+# ── Step 193: .section-alt margin shorthand silently overrode .section's centering — verify with getBoundingClientRect(), not screenshots alone ──
+
+:step-sectionAltMarginShorthandCentering a schema:HowToStep ;
+    schema:position 193 ;
+    schema:name "A shared class's spacing rule must use longhand margin-bottom (not the 3/4-value margin shorthand) or it silently overrides a base class's margin:0 auto centering on the same element — verify alignment fixes with getBoundingClientRect() in a real browser, not by re-reading CSS"@en ;
+    schema:text "Fixed 2026-08-12: .section-alt's margin shorthand overrode .section's centering on every alt-background section, invisible below ~1228px viewport; changed to margin-bottom only, confirmed via getBoundingClientRect() across nine sections."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/explorer-precedes-reference.ttl> .
+
+# ── Step 194: KG Explorer / SPARQL Workbench section-level accordion REMOVED — supersedes Step 185 for these two sections ──
+
+:step-kgSparqlAccordionRemoved a schema:HowToStep ;
+    schema:position 194 ;
+    schema:name "KG Explorer and SPARQL Workbench are always-visible sections again — do NOT wrap #kg-explorer or #sparql-explorer in a section-level <details> accordion; this supersedes Step 185 for these two sections specifically (per-query .sparql-card accordions inside the workbench are unaffected and still closed-by-default)"@en ;
+    schema:text "Removed 2026-08-12 per explicit direct user instruction ('Remove the accordion aspect of the KG Explorer and SPARQL workbench cards'); the icon/title/live-stat-badge moved into a real h2 instead of the old summary bar, and validate-harness-contract.py now forbids the accordion-wrapper strings it previously required."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerPreferencesUpdate ;
+    rdfs:seeAlso <howto/kg-explorer-sparql-workbench-accordion-removed.ttl>,
+        :step-sparqlSectionsClosedAccordion .
+
+# ── Step 195: every sample SPARQL query must be self-contained (PREFIX, dataset scope, DISTINCT) and its runnable claims empirically verified live ──
+
+:step-sparqlSampleQuerySelfContainment a schema:HowToStep ;
+    schema:position 195 ;
+    schema:name "Every sample/documented SPARQL query text MUST declare its own PREFIX lines, scope to the actual DAV graph IRI (except cross-graph reasoning demos), use DISTINCT, and have any reasoning-entailment claim empirically verified live (both with and without the pragma) rather than assumed — a query does not inherit its source Turtle document's @prefix/@base/graph context"@en ;
+    schema:text "Caught 2026-08-13 when a live-run sample query failed with Virtuoso 'Undefined default namespace prefix' — none of 20 sample SPARQL fields in a generated document declared their own PREFIX lines."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/sparql-sample-query-self-containment-gate.ttl>,
+        <howto/virtuoso-workbench-query-dedup.ttl> .
+
+
+# ── Step 196: a copied prior-HTML template must be checked against the CURRENT numbered gates, not assumed compliant because it looks recent ──
+
+:step-priorTemplateStalenessCheck a schema:HowToStep ;
+    schema:position 196 ;
+    schema:name "Before copying any prior HTML file as a structural base (LLM-Direct hand-authoring OR generator-assisted), grep it against the current footer/about-merge, explorer-placement, and card-uniformity gates — an older template silently reintroduces already-fixed defects even when picked from the same output folder and same model"@en ;
+    schema:text """Incident (2026-08-13): a new artifact (enterprise-ai-coordinate-system-claude_sonnet_5-1.html) was hand-built by copying uber-adr-agentic-ai-security-claude_sonnet_5-1.html (dated 2026-08-04) as the structural/CSS/JS base, per the established 'reuse a prior working example' practice (Step 184 / howto/study-prior-patterns.ttl). But the copied file predated three later fixes (Step 186 no-second-attribution-surface, Step 189 explorer-precedes-reference, Steps 191-193 card/container uniformity), so all three defects were silently reintroduced: a standalone 'About This Page' section duplicating the footer attribution block, the SPARQL explorer workbench stranded at the end of the footer instead of directly following the KG Explorer, and uneven format-tab/tech-card sizing from an unconstrained footer container. Harness validation still passed throughout, because validate-harness-contract.py checks for required CONTENT (labels, ids, resolver patterns), not document ORDER or layout redundancy — so 'validator green' gave false confidence.
+
+Rule: picking a prior file as a template is still correct practice (do not stop reusing proven CSS/JS), but before treating it as a baseline you MUST verify — by grep or by date — that it already satisfies every currently-numbered footer/about/explorer-placement/card-uniformity gate:
+  grep -c 'id=\"about\"' {template} — must show About merged INTO <footer>, never a separate mid-page <section id=\"about\">
+  grep -n '<section.*id=\"kg-explorer-section\"' {template} then confirm the NEXT <section> is id=\"sparql-explorer\" (Step 189) — not FAQ/glossary/howto
+  grep -n 'tech-card{' {template} — confirm min-height/flex-centering present (Step 192/193 lineage), not bare text-align:center padding
+  grep -n 'kg-format-tabs button{' {template} — confirm flex:1 (equal-width tabs), not auto-width buttons
+
+If any check fails, port the CURRENT pattern from the newest compliant file in the same output folder instead of the one you happened to grab — 'same model, reasonably recent filename' is not sufficient evidence of compliance. A stale template is a silent regression vector that harness-PASS does not catch."""@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified, onto:triggerSkillInvocation ;
+    rdfs:seeAlso <howto/footer-sparql-explorer-gate.ttl>,
+        <howto/prior-artifact-footer-polish-gate.ttl>,
+        <howto/study-prior-patterns.ttl>,
+        <howto/explorer-precedes-reference.ttl>,
+        :step-priorArtifactFooterPolishGate,
+        :step-noSecondAttributionSurface,
+        :step-explorerPrecedesReference,
+        :step-unconstrainedContainerWidth,
+        :step-cardGridAutoFitStretch .
+
+# ── Step 197: generic-card description truncation must be word-boundary-safe with a visible ellipsis; every .card needs min-width:0 + overflow-wrap ──
+
+:step-cardDescriptionTruncation a schema:HowToStep ;
+    schema:position 197 ;
+    schema:name "extract_description() MUST truncate at a word boundary with a visible ellipsis, never a bare [:N] slice that silently cuts mid-word; every .cards-grid card MUST have min-width:0 plus overflow-wrap:anywhere/word-break:break-word on its h3 and p"@en ;
+    schema:text "Fixed 2026-08-13 after a card's description silently cut off mid-word ('...the nine SP') with no ellipsis, and separately a long raw-filename card title nearly overflowed its card border — two related generic-card bugs affecting every People/Organizations/analysis-N card grid, not just one document."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/card-description-truncation-gate.ttl> .
+
+# ── Step 198: a product's general/roadmap capability (RDF-star support) is not verified by testing against the exact endpoint in use ──
+
+:step-rdfStarNotVerified a schema:HowToStep ;
+    schema:position 198 ;
+    schema:name "Never claim a specific SPARQL endpoint supports RDF-star/RDF 1.2 quoted-triple syntax (or any similar spec-level feature) without testing that exact syntax against that exact endpoint — general product reputation or roadmap status is not verification"@en ;
+    schema:text "Caught 2026-08-13: multiple fields asserted 'Virtuoso's RDF 1.2 (RDF-star) support' as fact, but both quoted-triple syntax forms returned a Virtuoso SP030 syntax error when actually tested against the live endpoint."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerBehaviorGapIdentified ;
+    rdfs:seeAlso <howto/sparql-sample-query-self-containment-gate.ttl> .
+
+# ── Step 199: every live sample query using a Virtuoso reasoning pragma gets a commented-pragma A/B companion query ──
+
+:step-pragmaAbToggleVariant a schema:HowToStep ;
+    schema:position 199 ;
+    schema:name "Standing preference: any live/Execute-button SPARQL sample query relying on a Virtuoso query-level pragma (DEFINE input:same-as, DEFINE input:inference '<ruleset>', etc.) MUST be accompanied by an identical companion query with the pragma commented out as a plain '#' line, cross-referenced both directions, so a reader can toggle reasoning on/off with a one-character edit"@en ;
+    schema:text "Direct user instruction 2026-08-13: 'Examples with Virtuoso pragmas should always be accompanied with variants where the pragma is commented out re A/B testing and demonstration of reasoning & inference' — implemented as :demoQ10/:demoQ11 companions to :demoQ5/:demoQ9, both verified live before being written in."@en ;
+    onto:hasTrigger onto:triggerArtifactGeneration, onto:triggerPreferencesUpdate ;
+    rdfs:seeAlso <howto/pragma-ab-toggle-variant.ttl> .

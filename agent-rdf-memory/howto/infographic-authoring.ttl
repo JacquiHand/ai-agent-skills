@@ -4,16 +4,16 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 <> a schema:HowTo ;
-    schema:name "Infographic Authoring — Attribution, Dark Mode, KG Explorer Reuse, Template Selection"@en ;
-    schema:description "Rules governing the authoring of HTML infographics: footer attribution format, dark mode CSS requirements (two-block selectors, general anchor rule, bright accent), KG Explorer template reuse mandate, template selection by content type, and the long-token overflow gate. The overflow gate exists because the same defect recurred three times (fixed 2026-06-29, recurred 2026-07-01 and 2026-07-02) in different element types — including a plain-text <h4> with no <code> wrapper, and a shared .sparql-code class that had never carried the fix and would have propagated the bug silently through reuse."@en ;
+    schema:name "Infographic Authoring — Attribution, Dark Mode, KG Explorer Reuse, Template Selection, Responsive Comparison"@en ;
+    schema:description "Rules governing the authoring of HTML infographics: footer attribution format, dark mode CSS requirements (two-block selectors, general anchor rule, bright accent), KG Explorer template reuse mandate, template selection by content type, responsive head-to-head comparison dual presentation (table large / cards small), and the long-token overflow gate. The overflow gate exists because the same defect recurred three times (fixed 2026-06-29, recurred 2026-07-01 and 2026-07-02) in different element types — including a plain-text <h4> with no <code> wrapper, and a shared .sparql-code class that had never carried the fix and would have propagated the bug silently through reuse."@en ;
     schema:dateCreated "2026-06-05T00:00:00Z"^^xsd:dateTime ;
-    schema:dateModified "2026-07-19T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-11T16:30:00Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:step :step-attribution, :step-darkModeCSS, :step-generalAnchorRule,
         :step-brightDarkAccent, :step-kgExplorerReuse, :step-templateSelection,
-        :step-footerCardOverflow, :step-overflowVerification ;
+        :step-responsiveComparison, :step-footerCardOverflow, :step-overflowVerification ;
     schema:workExample :workExample-kgExplorerProvenPatterns ;
-    rdfs:seeAlso <../preferences.ttl#step-templateSelection>, <../preferences.ttl#step-darkModeCSS>, <../preferences.ttl#step-attribution>, <../preferences.ttl#step-iifeGlobalScope>, <../preferences.ttl#step-kgExplorerReuse>, <../preferences.ttl#step-themeToggleInNavHeader>, <../preferences.ttl#step-footerCardOverflow>, <../preferences.ttl#step-openlinkBrandColorScheme>, <../preferences.ttl#step-readerFacingCopyGate>, <../preferences.ttl#step-screencastDistributionArtifacts> .
+    rdfs:seeAlso <../preferences.ttl#step-templateSelection>, <../preferences.ttl#step-darkModeCSS>, <../preferences.ttl#step-attribution>, <../preferences.ttl#step-iifeGlobalScope>, <../preferences.ttl#step-kgExplorerReuse>, <../preferences.ttl#step-themeToggleInNavHeader>, <../preferences.ttl#step-footerCardOverflow>, <../preferences.ttl#step-openlinkBrandColorScheme>, <../preferences.ttl#step-readerFacingCopyGate>, <../preferences.ttl#step-screencastDistributionArtifacts>, <../preferences.ttl#step-responsiveComparisonPresentation>, <responsive-comparison-presentation.ttl> .
 
 # ── Step 1: Footer Attribution ───────────────────────────────────────────────
 
@@ -56,12 +56,20 @@
 :step-templateSelection a schema:HowToStep ;
     schema:position "6"^^xsd:integer ;
     schema:name "Select the correct template from assets/templates/ based on content type"@en ;
-    schema:text """Select template from rdf-infographic-skill/assets/templates/ by content type. Four options and their decision trigger: (1) COMPETITIVE/HEAD-TO-HEAD → assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html — trigger: source compares two or more named platforms, products, or systems. Dark premium aesthetic, hero dual-badges, horizontal timeline, split comparison matrix, two-column capability panels. (2) GARTNER DASHBOARD → assets/templates/gartner-da-london-2026-claude-sonnet4-dashboard.html — trigger: conference report, strategy briefing, field notes, or dense operational dashboard with many metrics/chips. Top horizontal nav bar. (3) SEMANTIC MEDALLION EDITORIAL/TECHNICAL → assets/templates/semantic-medallion-editorial-technical.html — trigger: architecture explainer, SPARQL tutorial, layered/staged system (Bronze/Silver/Gold/Platinum). Narrow reading column, query accordions. (4) HARNESS REFERENCE → scripts/rdf_infographic_harness.py — fallback when none of the above clearly fits. Decision shortcut: comparing platforms → COMPETITIVE; conference/strategy → GARTNER; architecture/SPARQL → SEMANTIC MEDALLION; otherwise → HARNESS."""@en .
+    schema:text """Select template from rdf-infographic-skill/assets/templates/ by content type. Four options and their decision trigger: (1) COMPETITIVE/HEAD-TO-HEAD → assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html — trigger: source compares two or more named platforms, products, or systems. Dark premium aesthetic, hero dual-badges, horizontal timeline, responsive dual comparison (table on large screens + product cards on phones — see :step-responsiveComparison), two-column capability panels. (2) GARTNER DASHBOARD → assets/templates/gartner-da-london-2026-claude-sonnet4-dashboard.html — trigger: conference report, strategy briefing, field notes, or dense operational dashboard with many metrics/chips. Top horizontal nav bar. (3) SEMANTIC MEDALLION EDITORIAL/TECHNICAL → assets/templates/semantic-medallion-editorial-technical.html — trigger: architecture explainer, SPARQL tutorial, layered/staged system (Bronze/Silver/Gold/Platinum). Narrow reading column, query accordions. (4) HARNESS REFERENCE → scripts/rdf_infographic_harness.py — fallback when none of the above clearly fits. Decision shortcut: comparing platforms → COMPETITIVE; conference/strategy → GARTNER; architecture/SPARQL → SEMANTIC MEDALLION; otherwise → HARNESS."""@en .
 
-# ── Step 7: Long-Token Overflow Baseline CSS ─────────────────────────────────
+# ── Step 7: Responsive comparison dual presentation ──────────────────────────
+
+:step-responsiveComparison a schema:HowToStep ;
+    schema:position "7"^^xsd:integer ;
+    schema:name "Head-to-head matrices dual-present: comparison table on large screens, product cards on phones"@en ;
+    schema:text """PRIMARY skill contract lives in rdf-infographic-skill SKILL.md ('Responsive Head-to-Head Comparison Presentation'). When the HTML includes a multi-entity comparison matrix (≥2 named products/platforms/systems as parallel columns), emit dual markup (.comparison-table-view + .comparison-cards-view), switch with CSS at 900px (table ≥901px, cards ≤900px), keep facts identical across views, resolver-link entity names in both table and card headers, and verify both viewports before delivery. Do not ship phone-only horizontal-scroll tables for multi-column H2H. Full procedure: howto/responsive-comparison-presentation.ttl. Prefs fallback: preferences.ttl#step-responsiveComparisonPresentation."""@en ;
+    rdfs:seeAlso <responsive-comparison-presentation.ttl>, <../preferences.ttl#step-responsiveComparisonPresentation> .
+
+# ── Step 8: Long-Token Overflow Baseline CSS ─────────────────────────────────
 
 :step-footerCardOverflow a schema:HowToStep ;
-    schema:position "7"^^xsd:integer ;
+    schema:position "8"^^xsd:integer ;
     schema:name "Apply min-width:0 + overflow-wrap:anywhere as baseline CSS on ANY element that may carry a long unbroken token"@en ;
     schema:text """Any container rendering a long unbroken token (URL, IRI, camelCase identifier, base64) can overflow its boundary: white-space:normal only breaks at spaces, and CSS grid/flex items default to min-width:auto (sized to their largest unbreakable content), so the container refuses to shrink and the token spills out. GENERALIZED MANDATORY CSS — apply as a baseline default on shared classes, not as an opt-in per instance:
   {any-card-class} { min-width: 0 }
@@ -71,7 +79,7 @@ This includes: attribution/footer cards, offer/source/id cards' <h4> titles, and
 # ── Step 8: Overflow Verification (BLOCKING) ─────────────────────────────────
 
 :step-overflowVerification a schema:HowToStep ;
-    schema:position "8"^^xsd:integer ;
+    schema:position "9"^^xsd:integer ;
     schema:name "BLOCKING pre-delivery check: el.scrollWidth <= el.clientWidth on every long-token element"@en ;
     schema:text "After generating or editing any card, heading, or pre/code block that may contain a long token, check el.scrollWidth <= el.clientWidth via preview_eval — do not rely on a screenshot alone, overflow can be subtle at normal viewport widths. This is a BLOCKING check before delivery, not an optional nicety — the defect recurred twice after being fixed, in two different element types."@en .
 

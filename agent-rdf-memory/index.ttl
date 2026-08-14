@@ -6,7 +6,7 @@
 <> a schema:CreativeWork ;
     schema:name "Agent Session Index"@en ;
     schema:description "Index of all agent sessions with references to session files."@en ;
-    schema:dateModified "2026-08-01T11:51:40Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-14T15:59:50Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :sessionIndex .
 
@@ -711,3 +711,135 @@
     schema:item <sessions/2026-08-03-big_pickle-opencode.ttl> ;
     schema:name "Session 2026-08-03 (big-pickle + OpenCode — URIBurner paid file access granted 200 OK + narrated MPP screencast)"@en ;
     schema:description "Access retry succeeded: WebID-TLS probe on linkeddata.uriburner.com:5443 returned r1: 200 SUCCESS — Invoice #TE3DINF0-0009 payment and confirmed order ord_8f65f7ca-8e08-11f1-b27f-f0569f38fb9f had propagated into the server-side WebID entitlement; 1.5 MB World Cup 2026 Country & Player Guide meshup HTML (mapping player/conference/team data across DBpedia + Wikidata) delivered and saved. Produced narrated screencast at /Users/kidehen/Documents/LLMs/Big Pickle/screencasts/2026-08-03-mpp-access-webid-identity/ following screencast-recorder + the 2026-07-21 pattern: 6-step dark-theme presentation.html with embedded real screenshots (Stripe hosted invoice settlement invoice_card.png, Invoice paid #TE3DINF0-0009 invoice_paid.png, rendered resource after 200 OK resource_access.png), 8-scene storyboard.yml, OpenAI GPT-4o-mini TTS male voiceover (onyx, narration.txt ~223s, URIBurner pronounced U-R-I Burner, SPARQL as Sparkle), shot-scraper video (WebM+MP4), ffmpeg-muxed final 2026-08-03-mpp-access-webid-identity-with-voiceover.mp4 (223s, 10.8 MB), and .log.ttl. Narrative frames the flow as fine-grained attribute-based access control (ABAC) — a new kind of agentic commerce where valuable content is no longer available to AI agents at $0.00 for training and service production, then sold back per-token-per-million for prompt input and response output. Payment stated as $2.99 USD (not sterling)."@en .
+
+:session20260811BigPickleIriRemediation a schema:ListItem ;
+    schema:position 1020 ;
+    schema:item <sessions/2026-08-11-big_pickle-opencode.ttl> ;
+    schema:name "Session 2026-08-11 (big-pickle + OpenCode — canonical IRI remediation of concept and person entities)"@en ;
+    schema:description "User audit of the 'Why Open Source Matters for AI' KG (oreillyradar.substack.com guest post by Tim O'Reilly) found glossary/topic DefinedTerms and people minted as document-local hash IRIs, violating preferences.ttl#step-crossDocumentLocalTermReuse (pos 127) and howto/canonical-entity-iri-denotation.ttl. Remediation: verified canonical targets (DBpedia /data JSON self-node, Wikidata EntityData with UA, Wikipedia status, web search) then rewrote the TTL (478 triples) with canonical IRIs as sole subjects — 10 glossary terms + 6 topic dupes consolidated (Open Source/MCP/Agentic AI/Composability/LAMP -> DBpedia; AI Sovereignty -> wikidata:Q140561783 Sovereign AI; Open Weights/Harness/Distribution Convergence/Architecture of Participation stay document-local), 9 people moved to platform #this IRIs (Tim linkedin.com/in/timo3#this user-provided, X/Substack/GitHub via owl:sameAs; Addy x.com/addyosmani#this; Mario github.com/badlogic#this; Bob/Bill DBpedia; Isobel ssrc profile; Ilan personal site), organizations/software canonicalized too, Rule-19 enrichment, owl:sameAs entity-IRI-only + schema:sameAs for document URLs. GATE: validate-kg-compliance.sh 15/15 PASS; HTML 63 resolver links updated (28 canonicalized, 0 stale, 0 double-encoded), JSON-LD author @id + canonical skill @ids added, tag balance clean, node --check OK. Verified-with-caveats: Tim LinkedIn URL HTTP 999 bot-block (user supplied https://www.linkedin.com/in/timo3 on 2026-08-11); Architecture of Participation Wikipedia 404 (no article); Wikidata batch wbgetentities flaky 403/429 (retry per-ID); URIBurner person census SPARQL timed out twice. Follow-up: hero OBO ('Generated on behalf of Kingsley Idehen') attribution added per user clarification that OBO = on behalf of, hero section only; HTML now 64 resolver links, all gates re-pass."@en .
+
+:session20260811Grok45HarnessComparison a schema:ListItem ;
+    schema:position 1021 ;
+    schema:item <sessions/2026-08-11-grok_4_5-grok-cli.ttl> ;
+    schema:name "Session 2026-08-11 (Grok 4.5 + Grok CLI — coding agent harness comparison HTML+RDF collection)"@en ;
+    schema:description "Generated RDF-Turtle (665 triples) and HTML infographic collection from Grok share https://x.com/i/grok/share/a3cf868fd6434047b9534bb2f3baa44b comparing Pi, OpenCode, Claude Code, and Codex as coding agent harnesses. Source extracted via Playwright (SPA). Artifacts: coding-agent-harness-comparison-pi-opencode-claude-codex-grok-4-5-1.{ttl,html} in /LLMs/Grok/rdf/ and /webpages/. 12 FAQ, 10 glossary, 7 HowTo, comparison table section, D3@7 KG Explorer, SPARQL workbench. validate-harness-contract.py: PASS."@en .
+
+:session20260811Grok45SynthidText a schema:ListItem ;
+    schema:position 1022 ;
+    schema:item <sessions/2026-08-11-grok_4_5-grok-cli.ttl> ;
+    schema:name "Session 2026-08-11 (Grok 4.5 + Grok CLI — SynthID-Text Nature/PMC paper RDF+HTML collection)"@en ;
+    schema:description "Generated RDF-Turtle (627 triples, 0 blank nodes), JSON-LD twin, and HTML infographic for https://pmc.ncbi.nlm.nih.gov/articles/PMC11499265/ (SynthID-Text, Nature 634:818–823, 2024). Artifacts: scalable-watermarking-llm-synthid-text-grok_4_5-1.{ttl,jsonld,html} in /LLMs/Grok/rdf/ and /webpages/. Lightweight watermarking ontology, 12 FAQ, 11 glossary, 7 HowTo, D3@7 KG Explorer (144/378), SPARQL workbench. validate-kg-compliance.sh PASS; validate-harness-contract.py PASS."@en .
+
+:session20260813Grok46Whoami a schema:ListItem ;
+    schema:position 1023 ;
+    schema:item <sessions/2026-08-13-grok_4_6-grok-cli.ttl> ;
+    schema:name "Session 2026-08-13 (Grok 4.6 + Grok CLI — verified whoami gate)"@en ;
+    schema:description "First Grok 4.6 Grok Build TUI session in this repo. Trigger A whoami; Enterprise AI Coordinate System meshup; then notes on The Hacker News khunt/Oracle SQL-injection recap with approved Multi-Tier JDBC and JDBC-to-JDBC Bridge commentary. Artifacts in LLM_ROOT/Grok/{rdf,webpages,md}/. validate-kg-compliance 20/20; harness PASS; comparison table at desktop, cards at 390px; theme toggle verified."@en .
+
+:session20260813Gemini36FlashAntigravity a schema:ListItem ;
+    schema:position 1024 ;
+    schema:item <sessions/2026-08-13-gemini_3_6_flash-antigravity.ttl> ;
+    schema:name "Session 2026-08-13 (Gemini 3.6 Flash + Antigravity — verified whoami gate and AGENTS.md contract activation)"@en ;
+    schema:description "Activated AGENTS.md protocol permanently. Executed Agent RDF Memory protocol, loaded core.ttl, preferences.ttl, index.ttl, resolved credential root at ~/Documents/Management/Marketing/WebID, executed verified identity gate (openssl cert modulus match + reciprocal delegation check), and initialized session memory."@en .
+
+:sessionIndex schema:itemListElement :session20260813Gemini36FlashAntigravity .
+
+:session20260813DeepSeekV4ProPiNobodyOwnsContext a schema:ListItem ;
+    schema:position 1025 ;
+    schema:item <sessions/2026-08-13-deepseek_v4pro-pi.ttl> ;
+    schema:name "Session 2026-08-13 (DeepSeek V4 Pro + pi — Gartner Hype Cycles 2026 'Nobody Owns Context' KG collection with session-interrogation proof)"@en ;
+    schema:description "Generated RDF-Turtle (454 triples, 0 blank nodes) and a 241 KB self-contained HTML infographic for https://atlan.com/context-and-chaos/issue/gartner-hype-cycles-2026-nobody-owns-context/ (Tathagata Das Sarma, Context & Chaos). Modeled ten Gartner 2026 Hype Cycles (314 obstacle profiles, 14-point organizational-barrier gradient), the three shifts, the four-item decision-reconstruction test, and the 8 self-diagnostic context-evidence questions — each answered by interrogating the agent-rdf-memory store as proof (135 sessions, 199 HowToStep policy rules, core.ttl identity, ontology.ttl semantics). 12 FAQ, 10 glossary, 7 HowTo, 2 SPARQL recipes, 119-node/272-link D3 KG Explorer, SPARQL workbench. Built via the reusable html_assembler.py pipeline with get_base_iri pinned to the source namespace; validate-harness-contract.py PASS on first run."@en .
+
+:sessionIndex schema:itemListElement :session20260813DeepSeekV4ProPiNobodyOwnsContext .
+
+:session20260813BigPickleNobodyOwnsContext a schema:ListItem ;
+    schema:position 1026 ;
+    schema:item <sessions/2026-08-13-big_pickle-opencode.ttl> ;
+    schema:name "Session 2026-08-13 (big-pickle + OpenCode — Gartner Hype Cycles 2026 'Nobody Owns Context' KG collection with session-interrogation proof)"@en ;
+    schema:description "Generated RDF-Turtle (1022 triples, 0 blank nodes), a 373 KB self-contained HTML infographic, and a 277-line Markdown companion for https://atlan.com/context-and-chaos/issue/gartner-hype-cycles-2026-nobody-owns-context/ (Tathagata Das Sarma, Context & Chaos). Modeled ten Gartner 2026 Hype Cycles (314 obstacle profiles, 14-point organizational-barrier gradient, three shifts, six-dimension context inventory), the four-item decision-reconstruction test as a lightweight contextOwnershipOntology, and the 8 self-diagnostic context-evidence questions — each answered by interrogating the agent-rdf-memory store as proof (135 sessions, 199 HowToStep policy rules, core.ttl identity, ontology.ttl semantics). 14 FAQ, 32 glossary, 6 HowTo, 5 ImageObjects, 222-node/551-link D3 KG Explorer. URL-audit: 5 image + 4 issue + MCP spec URLs 200, census 403 and LinkedIn 999 bot-blocks documented, 3 fabricated IRIs removed, dbr: CURIEs expanded. Validation: rdflib PARSE OK, validate-kg-compliance.sh 20/20, validate-harness-contract.py PASS, Step 145 gate 0 violations, Playwright smoke test (35 nodes/55 links, tray + nav closed by default, dark-mode toggle OK)."@en .
+
+:sessionIndex schema:itemListElement :session20260813BigPickleNobodyOwnsContext .
+
+
+
+# ── Merged 2026-08-14: sessions consolidated from parallel stores ────────────
+
+:session20260525Gpt5Codex a schema:ListItem ;
+    schema:position 1027 ;
+    schema:item <sessions/2026-05-25-gpt5-codex.ttl> ;
+    schema:name "Session 2026-05-25 (GPT-5 Codex)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260525Gpt5Codex .
+
+:session20260526Gpt5Codex a schema:ListItem ;
+    schema:position 1028 ;
+    schema:item <sessions/2026-05-26-gpt5-codex.ttl> ;
+    schema:name "Session 2026-05-26 (GPT-5 Codex)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260526Gpt5Codex .
+
+:session20260527Gpt5Codex a schema:ListItem ;
+    schema:position 1029 ;
+    schema:item <sessions/2026-05-27-gpt5-codex.ttl> ;
+    schema:name "Session 2026-05-27 (GPT-5 Codex)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260527Gpt5Codex .
+
+:session20260528Gpt5Codex a schema:ListItem ;
+    schema:position 1030 ;
+    schema:item <sessions/2026-05-28-gpt5-codex.ttl> ;
+    schema:name "Session 2026-05-28 (GPT-5 Codex)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260528Gpt5Codex .
+
+:session20260528Gpt5CodexMorning a schema:ListItem ;
+    schema:position 1031 ;
+    schema:item <sessions/2026-05-28-gpt5-codex-2.ttl> ;
+    schema:name "Session 2026-05-28 (GPT-5 Codex — morning session)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260528Gpt5CodexMorning .
+
+:session20260528SonnetCowork a schema:ListItem ;
+    schema:position 1032 ;
+    schema:item <sessions/2026-05-28-sonnet-cowork.ttl> ;
+    schema:name "Session 2026-05-28 (Claude Sonnet + Cowork — How We Contain Claude KG collection)"@en ;
+    schema:description "Built 3-file KG collection for the Anthropic engineering article 'How We Contain Claude'. Merged 2026-08-14 from the Claude Generated parallel store."@en .
+
+:sessionIndex schema:itemListElement :session20260528SonnetCowork .
+
+:session20260529Gpt5Codex a schema:ListItem ;
+    schema:position 1033 ;
+    schema:item <sessions/2026-05-29-gpt5-codex.ttl> ;
+    schema:name "Session 2026-05-29 (GPT-5 Codex)"@en ;
+    schema:description "Merged 2026-08-14 from the GPT5-Chat-Generated parallel agent-rdf-memory store."@en .
+
+:sessionIndex schema:itemListElement :session20260529Gpt5Codex .
+
+:session20260602AtlanEnterpriseContextLayerGpt5Codex a schema:ListItem ;
+    schema:position 1034 ;
+    schema:item <sessions/2026-06-02-atlan-enterprise-context-layer-gpt5-codex.ttl> ;
+    schema:name "Session 2026-06-02 (GPT-5 Codex — Atlan enterprise context layer session log)"@en ;
+    schema:description "2026-06-02 Atlan enterprise context layer session log document. Merged 2026-08-14 from the GPT5-Chat-Generated parallel store."@en .
+
+:sessionIndex schema:itemListElement :session20260602AtlanEnterpriseContextLayerGpt5Codex .
+
+:session20260612SonnetClaudeCode a schema:ListItem ;
+    schema:position 1035 ;
+    schema:item <sessions/2026-06-12-sonnet-claude-code.ttl> ;
+    schema:name "Session 2026-06-12 (Claude Sonnet + Claude Code — preferences protocol compliance, license read, core.ttl token-logging enhancement)"@en ;
+    schema:description "Preferences protocol compliance, license read, core.ttl token-logging enhancement. Merged 2026-08-14 from the Claude Generated parallel store."@en .
+
+:sessionIndex schema:itemListElement :session20260612SonnetClaudeCode .
+
+:session20260721Grok45GrokBuild a schema:ListItem ;
+    schema:position 1036 ;
+    schema:item <sessions/2026-07-21-grok-4-5-grok-build.ttl> ;
+    schema:name "Session 2026-07-21 (Grok 4.5 + Grok Build — whoami response gap diagnosis)"@en ;
+    schema:description "Diagnosed incomplete whoami responses against preferences.ttl PROV model; added :step-full-whoami-identity-response-principal-agent-delegation. Merged 2026-08-14 from the Claude Generated parallel store."@en .
+
+:sessionIndex schema:itemListElement :session20260721Grok45GrokBuild .

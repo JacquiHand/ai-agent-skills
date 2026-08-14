@@ -53,12 +53,48 @@ h1,h2,h3,h4{font-family:'Poppins',sans-serif;line-height:1.3}
 h2{font-size:1.8rem;margin-bottom:1.5rem;position:relative}
 h2 .headline-anchor{opacity:0;margin-left:8px;font-size:1rem;color:var(--primary);text-decoration:none;transition:opacity .2s}
 h2:hover .headline-anchor{opacity:1}
+/* Used by the (no-longer-accordion) KG Explorer / SPARQL Workbench headings
+   to lay the icon + title + live stat badge out in a row while still being
+   a real <h2> that inherits the standard font-family/size/weight/margin --
+   see accordion-summary-heading-inheritance-gap.ttl for why a non-heading
+   element carrying this content previously needed its typography restated
+   by hand; a real h2 needs no such restatement. */
+.section-heading-flex{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
+.section-heading-flex .section-accordion-stat{font-size:.74rem;font-weight:600}
+@media(max-width:768px){.section-heading-flex{gap:.5rem}}
 .section{padding:4rem 2rem;max-width:1100px;margin:0 auto}
-.section-alt{background:var(--bg-alt);border-radius:12px;margin:0 2rem 2rem;padding:4rem 2rem}
+/* margin-bottom ONLY (longhand) -- a shorthand margin:0 2rem 2rem here would
+   set literal 32px left/right margins that silently override .section's
+   margin:0 auto centering (same specificity, .section-alt declared later
+   wins), un-centering every alt section relative to plain .section/
+   .section-accordion elements on any viewport wide enough for the 1100px
+   max-width to actually bind (~1228px+). Invisible below that width, which
+   is why it went unnoticed until a properly-centered .section-accordion
+   sat next to a .section-alt panel on a wide screen. Caught 2026-08-12 via
+   getBoundingClientRect() comparison: #people left:32/right:1132 (broken,
+   fixed-margin) vs #kg-explorer-accordion left:119/right:1219 (correct,
+   auto-centered) on a 1337px viewport -- see preferences.ttl Step 193. */
+.section-alt{background:var(--bg-alt);border-radius:12px;margin-bottom:2rem;padding:4rem 2rem}
 @media(max-width:768px){
   .section{padding:2rem 1rem}
-  .section-alt{margin:0 .5rem 1rem;padding:2rem 1rem;border-radius:8px}
+  .section-alt{margin-bottom:1rem;padding:2rem 1rem;border-radius:8px}
   h2{font-size:1.4rem}
+}
+
+/* Synopsis / any multi-paragraph raw-HTML abstract (see html_assembler.py's
+   synopsis rendering note): give each <p> real spacing instead of relying on
+   <br><br> hacks, and offer a .lede modifier for a slightly larger, medium-
+   weight thesis-in-one-sentence opening paragraph -- the standard editorial
+   pattern for turning a dense wall of text into something scannable. */
+#synopsis p{font-size:1.05rem;line-height:1.75;margin-bottom:1.1rem;color:var(--text)}
+#synopsis p:last-child{margin-bottom:0}
+#synopsis p.lede{font-size:1.2rem;font-weight:600;line-height:1.55;color:var(--text)}
+#synopsis p a{color:var(--accent,var(--primary));text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
+#synopsis p a:hover{border-bottom-color:currentColor}
+#synopsis .synopsis-meta{margin-top:1.25rem;font-size:.85rem}
+@media(max-width:768px){
+  #synopsis p{font-size:.98rem}
+  #synopsis p.lede{font-size:1.08rem}
 }
 
 /* Floating Nav */
@@ -105,12 +141,25 @@ html[data-theme="dark"] .theme-btn:hover{background:var(--neutral-700)}
 @media(max-width:768px){.solution-grid{grid-template-columns:1fr}}
 
 /* Cards */
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:2rem}
-.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:transform .3s,box-shadow .3s;box-shadow:var(--card-shadow)}
+/* auto-fill, NOT auto-fit: auto-fit collapses empty tracks and stretches the
+   remaining item(s) to fill the reclaimed space, so a section with only one
+   or two cards (a single-person People section, a single-item Demo Instance
+   Data section) renders that lone card stretched edge-to-edge across the
+   full container instead of staying compact and left-aligned like every
+   other card grid on the page (.glossary-grid already correctly uses
+   auto-fill). Caught 2026-08-12 — see preferences.ttl Step 192. */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;margin-top:2rem}
+/* min-width:0 is required on any CSS Grid item that can hold an unbroken
+   long token (a filename, a URL, an identifier) -- without it a grid item's
+   default min-width:auto lets its intrinsic content width push past the
+   card's own border, overflowing the visual boundary even though the text
+   itself never sizes down. overflow-wrap/word-break are the belt-and-braces
+   fallback for tokens with genuinely no break opportunity at all. */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:transform .3s,box-shadow .3s;box-shadow:var(--card-shadow);min-width:0}
 .card:hover{transform:translateY(-4px);box-shadow:var(--card-hover-shadow)}
-.card h3{font-size:1.05rem;margin-bottom:.5rem;color:var(--primary)}
+.card h3{font-size:1.05rem;margin-bottom:.5rem;color:var(--primary);overflow-wrap:anywhere;word-break:break-word}
 .card h3 a{color:var(--primary)}
-.card p{font-size:.9rem;color:var(--text-secondary);line-height:1.6}
+.card p{font-size:.9rem;color:var(--text-secondary);line-height:1.6;overflow-wrap:anywhere;word-break:break-word}
 .card .card-icon{font-size:1.8rem;margin-bottom:.5rem}
 
 /* Timeline */
@@ -167,11 +216,66 @@ html[data-theme="dark"] .theme-btn:hover{background:var(--neutral-700)}
 .kg-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .hint-text{text-align:center;padding:6px 14px;font-size:11px;color:var(--text-secondary)}
 
-/* SPARQL Workbench */
+/* Section-level accordions (KG Explorer, SPARQL Workbench) — closed by
+   default so a heavy interactive surface doesn't dominate the page before
+   the reader has chosen to open it. The nested <section class="section
+   section-alt"> is untouched (same margin/padding/radius as always); the
+   summary bar reuses its left/right margin so it reads as a flap attached
+   to the top of that card, full-radius when closed, flat-bottom when open.
+   An icon + live stat badge (node/link count, sample-query count) preview
+   what's inside before the reader opens it, and the revealed content fades
+   / slides in on open instead of the native <details> instant snap. */
+/* max-width/margin here MUST mirror .section{max-width:1100px;margin:0 auto}
+   exactly -- .section-accordion is a direct <body> child (not wrapped in a
+   .section), so without its own cap it stretches to full viewport width on
+   wide screens while every other section caps at 1100px. Caught 2026-08-12
+   alongside the matching .footer-inner gap below -- same root cause: a
+   container added outside the .section/.section-alt system inherits none of
+   its width constraint and needs it restated explicitly. */
+.section-accordion{max-width:1100px;margin:0 auto 1.75rem}
+.section-accordion-summary{cursor:pointer;list-style:none;padding:1.1rem 1.75rem;margin:0 2rem 0;background:var(--card-bg,var(--card));border:1px solid var(--border);box-shadow:var(--card-shadow,0 1px 3px rgba(0,0,0,.06));border-radius:12px;display:flex;align-items:center;gap:.65rem;transition:filter .2s,background .2s,box-shadow .2s}
+.section-accordion-summary::-webkit-details-marker{display:none}
+.section-accordion-summary:hover{filter:brightness(.97);box-shadow:var(--card-hover-shadow,0 4px 14px rgba(0,0,0,.1))}
+.section-accordion-icon{flex:0 0 auto;width:30px;height:30px;display:inline-flex;color:var(--accent,var(--primary))}
+.section-accordion-icon svg{width:100%;height:100%}
+/* Title reuses the page's actual h2 identity (font-family/size/weight) so the
+   accordion flap reads as the same heading tier as every other section on the
+   page -- a <summary> tag does NOT inherit the h1..h4{font-family:Poppins} or
+   h2{font-size:1.8rem} rules on its own, which is what caused this bar to
+   render in the body's Inter font at a smaller ad-hoc size/weight than every
+   other section title (FAQ, Glossary, HowTo, People, ...). */
+.section-accordion-title{flex:0 1 auto;min-width:0;font-family:'Poppins',sans-serif;font-size:1.8rem;font-weight:700;line-height:1.3;color:var(--text)}
+.section-accordion-stat{flex:0 0 auto;margin-left:auto;font-size:.74rem;font-weight:600;letter-spacing:.01em;color:var(--text-secondary);background:var(--card-bg,var(--card));border:1px solid var(--border);padding:.3rem .7rem;border-radius:999px;white-space:nowrap}
+.section-accordion-summary::after{content:'Show ▼';font-size:.8rem;font-weight:500;color:var(--text-secondary);white-space:nowrap;flex:0 0 auto}
+.section-accordion[open] .section-accordion-summary{border-radius:12px 12px 0 0}
+.section-accordion[open] .section-accordion-summary::after{content:'Hide ▲'}
+@media(max-width:768px){
+  .section-accordion-summary{margin:0 .5rem 0;padding:.85rem 1rem;flex-wrap:wrap}
+  .section-accordion-title{font-size:1.4rem}
+  .section-accordion-stat{order:3;margin-left:2.65rem;flex-basis:100%}
+  .section-accordion-icon{width:24px;height:24px}
+}
+@keyframes accordionReveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.section-accordion[open]>.section.section-alt{animation:accordionReveal .32s cubic-bezier(.16,1,.3,1)}
+
+/* SPARQL Workbench — sample-query cards nest one level inside the outer
+   section-accordion; smaller header type + a left accent bar keeps that
+   nesting visually distinct instead of reading as an equal-weight sibling. */
 #sparql-explorer{margin-top:2rem}
-.sparql-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.sparql-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.sparql-card-header h3{margin:0;font-size:1rem}
+.sparql-card{background:var(--card-bg);border:1px solid var(--border);border-left:3px solid var(--accent,var(--primary-light));border-radius:10px;overflow:hidden;opacity:.92;transition:opacity .2s,border-color .2s}
+.sparql-card:hover,.sparql-card[open]{opacity:1}
+.sparql-card-header{padding:11px 16px;border-bottom:1px solid transparent;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;cursor:pointer;list-style:none;transition:background .2s,border-color .2s}
+.sparql-card-header::-webkit-details-marker{display:none}
+.sparql-card-header:hover{background:var(--bg-alt)}
+.sparql-card-header::after{content:'▼';font-size:10px;color:var(--text-secondary);transition:transform .3s;flex-shrink:0;margin-left:auto}
+.sparql-card[open] .sparql-card-header{border-bottom-color:var(--border)}
+.sparql-card[open] .sparql-card-header::after{transform:rotate(180deg)}
+.sparql-card-header h3{margin:0;font-size:.88rem;font-weight:600;color:var(--text-secondary)}
+.sparql-card-header h3 a{color:inherit}
+.sparql-card[open] .sparql-card-header h3{color:var(--text)}
+.sparql-card-header>a{font-size:.88rem;font-weight:600;color:var(--text-secondary);text-decoration:none}
+.sparql-card-header>a:hover{color:var(--primary);text-decoration:underline}
+.sparql-card[open] .sparql-card-header>a{color:var(--text)}
 .sparql-body{padding:14px 18px}
 .sparql-body label{font-size:12px;font-weight:500;display:block;margin-bottom:4px;color:var(--text-secondary)}
 .sparql-body textarea{width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:'SF Mono','Fira Code','Consolas',monospace;font-size:12px;background:var(--bg-alt);color:var(--text);resize:vertical;tab-size:2}
@@ -179,6 +283,7 @@ html[data-theme="dark"] .theme-btn:hover{background:var(--neutral-700)}
 .sparql-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .sparql-actions button,.sparql-actions a{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card-bg);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .2s}
 .sparql-actions button:hover,.sparql-actions a:hover{background:var(--bg-alt);border-color:var(--primary-light);text-decoration:none}
+.sparql-actions [hidden]{display:none !important}
 .sparql-actions .primary{background:var(--primary);color:#fff;border-color:var(--primary)}
 .sparql-actions .primary:hover{background:var(--secondary)}
 
@@ -221,14 +326,243 @@ html[data-theme="dark"] .theme-btn:hover{background:var(--neutral-700)}
 .comment-card .comment-title{font-size:.78rem;color:var(--text-secondary);margin-bottom:.5rem}
 .comment-card p{font-size:.85rem;color:var(--text-secondary);line-height:1.6}
 
-/* Attribution Footer */
-.footer-attribution{background:var(--bg-alt);border-top:1px solid var(--border);padding:3rem 2rem;margin-top:3rem}
-.footer-attribution .section{max-width:900px}
-.attr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.2rem;margin-top:1.5rem}
-.attr-card{background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem}
-.attr-card h4{font-size:.85rem;margin-bottom:.4rem;color:var(--text)}
-.attr-card p,.attr-card a{font-size:.82rem;color:var(--text-secondary)}
-.attr-card a{display:inline-block;margin:2px 0}
+/* Attribution Footer — polished stock shell (prior-artifact-footer-polish-gate) */
+.footer-attribution{
+  background:var(--bg-alt);
+  border-top:1px solid var(--border);
+  padding:4rem 0;
+  margin-top:3rem;
+}
+/* footer-inner alone owns horizontal max-width + padding (mirrors
+   .section{max-width:1100px;padding:4rem 2rem} exactly: 1100px outer box,
+   2rem horizontal padding each side -> 1036px content) so footer content
+   renders the same width as every other section's content, not ~64px wider.
+   Caught 2026-08-12 alongside the matching .section-accordion width gap
+   above -- footer-inner previously had max-width:1100px with NO padding of
+   its own, so its content was the full 1100px instead of 1036px. */
+.footer-attribution .footer-inner{
+  max-width:1100px;
+  margin:0 auto;
+  padding:0 2rem;
+  min-width:0;
+}
+@media(max-width:768px){
+  .footer-attribution{padding:2rem 0}
+  .footer-attribution .footer-inner{padding:0 1rem}
+}
+.footer-attribution .footer-kicker{
+  font-size:0.72rem;
+  font-weight:700;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--muted, var(--text-secondary));
+  margin:0 0 0.45rem;
+}
+.footer-attribution h2{
+  font-size:1.45rem;
+  margin:0 0 0.55rem;
+  letter-spacing:-0.02em;
+}
+.footer-lead{
+  font-size:0.92rem;
+  color:var(--muted, var(--text-secondary));
+  line-height:1.55;
+  max-width:58ch;
+  margin:0 0 1.5rem;
+}
+.footer-explore{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.85rem 1.1rem;
+  padding:1.1rem 1.2rem;
+  margin:0 0 1.25rem;
+  background:var(--card-bg, var(--card));
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(15,23,42,0.06);
+  min-width:0;
+}
+.footer-explore-copy{flex:1 1 220px;min-width:0}
+.footer-explore-copy strong{
+  display:block;
+  font-size:0.95rem;
+  color:var(--text);
+  margin-bottom:0.2rem;
+}
+.footer-explore-copy span{
+  font-size:0.82rem;
+  color:var(--muted, var(--text-secondary));
+  line-height:1.45;
+}
+a.cta-btn, .footer-attribution a.cta-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:0.45rem;
+  padding:0.7rem 1.15rem;
+  background:var(--accent);
+  color:#fff !important;
+  border-radius:999px;
+  text-decoration:none !important;
+  font-weight:650;
+  font-size:0.88rem;
+  white-space:nowrap;
+  box-shadow:0 4px 14px rgba(0,180,255,0.22);
+  transition:transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  flex:0 0 auto;
+}
+a.cta-btn:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.05);
+  box-shadow:0 6px 18px rgba(0,180,255,0.3);
+}
+.footer-sparql-cta{
+  text-align:left;
+  margin:0 0 1.75rem;
+  min-width:0;
+}
+.footer-sample-visible.sparql-block,
+.sparql-block.footer-sample-visible{
+  margin:0 0 0.25rem;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--card-bg, var(--card));
+  overflow:hidden;
+  min-width:0;
+}
+.sparql-block-hdr{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0.55rem 0.85rem;
+  padding:0.65rem 0.9rem;
+  border-bottom:1px solid var(--border);
+  min-width:0;
+}
+.sparql-lang-badge{
+  font-size:0.68rem;
+  font-weight:700;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:#fff;
+  background:var(--accent);
+  padding:0.2rem 0.45rem;
+  border-radius:6px;
+}
+.sparql-block-hdr .sample-note{
+  flex:1 1 160px;
+  font-size:0.78rem;
+  color:var(--muted, var(--text-secondary));
+  line-height:1.4;
+  min-width:0;
+}
+.sparql-copy-btn{
+  font-size:0.78rem;
+  font-weight:600;
+  padding:0.35rem 0.7rem;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--bg);
+  color:var(--text);
+  cursor:pointer;
+}
+.sparql-copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.footer-attribution .sparql-code,
+#sparql-explorer-code{
+  display:block;
+  white-space:pre-wrap;
+  overflow-x:auto;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  padding:0.9rem 1rem;
+  background:var(--bg);
+  border:0;
+  border-radius:0;
+  font-size:0.78rem;
+  line-height:1.5;
+  margin:0;
+  min-width:0;
+}
+.attr-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));
+  gap:0.9rem;
+  margin:0 0 1.25rem;
+}
+.attr-card{
+  background:var(--card-bg, var(--card));
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:1rem 1.05rem;
+  min-width:0;
+  overflow:hidden;
+  box-shadow:var(--card-shadow);
+}
+.attr-card h4{
+  font-size:0.72rem;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--muted, var(--text-secondary));
+  margin:0 0 0.55rem;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.attr-card p, .attr-card .soft-list p{
+  font-size:0.86rem;
+  line-height:1.5;
+  margin:0 0 0.4rem;
+  color:var(--text);
+  overflow-wrap:anywhere;
+  word-break:break-word;
+  min-width:0;
+}
+.attr-card p:last-child, .attr-card .soft-list p:last-child{margin-bottom:0}
+.attr-card a{
+  color:var(--accent);
+  text-decoration:none;
+  font-weight:500;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.attr-card a:hover{text-decoration:underline}
+.soft-list{min-width:0;display:flex;flex-direction:column;gap:0.35rem}
+.path-chip{
+  display:inline;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:0.78rem;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.footer-skills{
+  margin-top:14px;
+  padding-top:1.15rem;
+  border-top:1px solid var(--border);
+  color:var(--muted, var(--text-secondary));
+  font-size:0.86rem;
+  line-height:1.55;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.footer-skills a{color:var(--accent);font-weight:500;text-decoration:none}
+.footer-skills a:hover{text-decoration:underline}
+.footer-meta-line{
+  margin-top:0.65rem;
+  font-size:0.78rem;
+  color:var(--muted, var(--text-secondary));
+  line-height:1.45;
+}
+.footer-attribution a:not(.cta-btn){
+  color:var(--accent);
+  text-decoration:none;
+}
+.footer-attribution a:not(.cta-btn):hover{text-decoration:underline}
+@media (max-width:640px){
+  .footer-attribution{padding:2.4rem 0 2rem}
+  .footer-attribution .footer-inner{padding:0 1rem}
+  .footer-explore{padding:1rem}
+  a.cta-btn{width:100%;justify-content:center}
+}
 
 /* Animations */
 @keyframes slideUpFade{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}

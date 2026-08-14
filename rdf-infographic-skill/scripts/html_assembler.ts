@@ -125,7 +125,10 @@ function renderNarrative(
 
   if (narrative.synopsis) {
     const syn = narrative.synopsis;
-    const abstract = escHtml(syn.abstract);
+    // schema:abstract is trusted author-controlled prose, not untrusted input — rendered
+    // raw (not escaped) so RDF-authored resolver-link <a> tags and <br> paragraph breaks
+    // (the documented entity-link-in-body-prose pattern) render as real markup, not text.
+    const abstract = syn.abstract || "";
     const heading = syn.headline ? escHtml(syn.headline) : "Synopsis";
     const lo = syn.iri ? `<a href="${resolverLink(syn.iri, resolverPattern)}" target="_blank" rel="noopener noreferrer">` : "";
     const lc = syn.iri ? "</a>" : "";

@@ -11,7 +11,7 @@
     schema:name "Entity Registry: Concepts & Defined Terms"@en ;
     schema:description "Canonical schema:DefinedTerm entity IRIs for recurring conceptual entities across the agent RDF memory system. Concepts are abstract notions (Semantic Web, Linked Data, WebID, DPKI) that recur across KG generations and session analyses. This is the authoritative single-source-of-truth — agents MUST consult this registry before resolving a concept entity, using the highest-priority canonical IRI available."@en ;
     schema:dateCreated "2026-07-08T00:00:00Z"^^xsd:dateTime ;
-    schema:dateModified "2026-07-14T00:00:00Z"^^xsd:dateTime ;
+    schema:dateModified "2026-08-11T12:52:00Z"^^xsd:dateTime ;
     schema:author <https://linkedin.com/in/kidehen#this> ;
     schema:about :semanticWeb, :linkedData, :knowledgeGraph, :sparqlConcept, :rdfConcept,
         :webid, :dpki, :selfSovereignIdentity, :meshup,
@@ -20,7 +20,8 @@
         :ontology, :owlConcept, :skosConcept, :webdav, :provO, :abac, :digitalTwin,
         :promptInjection, :vibeCoding, :systemOfRecord, :modelContextProtocol, :semanticLayer,
         :contextEngineering, :agenticWeb, :aiAgent, :agentIdentity, :contextGraph,
-        :decisionTrace, :containment, :aiGovernance ;
+        :decisionTrace, :containment, :aiGovernance, :agenticAI, :openWeights,
+        :harness, :aiSovereignty ;
     rdfs:seeAlso <../preferences.ttl>,
         <../howto/canonical-entity-iri-denotation.ttl>,
         <../howto/owl-sameas-vs-skos-related.ttl>,
@@ -416,3 +417,43 @@
     skos:related :containment, :agentIdentity ;
     rdfs:comment "Recurred in 3 corpus documents. No verified external IRI as of 2026-07-14 (dbpedia:Regulation_of_artificial_intelligence is adjacent but narrower — regulation is one instrument of governance)."@en ;
     schema:dateCreated "2026-07-14T00:00:00Z"^^xsd:dateTime .
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ── 2026-08-11 Promotion (Why Open Source Matters for AI corpus) ───────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Canonical targets verified 2026-08-11 (DBpedia /data JSON self-node check,
+# Wikidata EntityData with browser UA, Wikipedia status). Reused by the
+# why-open-source-matters-for-ai KG instead of re-minting document-local
+# equivalents.
+
+:agenticAI a schema:DefinedTerm ;
+    schema:name "Agentic AI"@en ;
+    schema:description "AI systems that act on tasks using tools, harnesses, and context; the frontier where composability and open protocols matter most."@en ;
+    owl:sameAs <http://dbpedia.org/resource/Agentic_AI> ;
+    skos:related :aiAgent, :agenticWeb, :modelContextProtocol ;
+    rdfs:comment "Canonical: DBpedia (verified 2026-08-11). Recurred across corpus documents under local IRIs (census hits in the context-gap essay and AI incident database). Reused, not re-minted, in why-open-source-matters-for-ai (2026-08-11)."@en ;
+    schema:dateCreated "2026-08-11T00:00:00Z"^^xsd:dateTime .
+
+:openWeights a schema:DefinedTerm ;
+    schema:name "Open Weights"@en ;
+    schema:description "Publicly released model weights; table stakes in the open source AI debate — the real value is in architecture and composability."@en ;
+    rdfs:seeAlso <https://en.wikipedia.org/wiki/Open-weight_model> ;
+    skos:related :agenticAI, :modelContextProtocol ;
+    rdfs:comment "Document-local canonical: no DBpedia self node and no verified Wikidata concept entity as of 2026-08-11; Wikipedia article verified (HTTP 200). Recurred across corpus documents under local IRIs (census hits, why-open-source-matters-for-ai #termOpenWeights)."@en ;
+    schema:dateCreated "2026-08-11T00:00:00Z"^^xsd:dateTime .
+
+:harness a schema:DefinedTerm ;
+    schema:name "Harness (AI agent)"@en ;
+    schema:description "The software shell around a model — prompts, tools, context, hooks — where participation and modification increasingly happen."@en ;
+    skos:related :agenticAI, :contextEngineering, :aiAgent ;
+    rdfs:comment "Document-local canonical: no verified external IRI as of 2026-08-11. Recurred across corpus documents (satyas-convenient-truth-meshup :termHarness, why-open-source-matters-for-ai #termHarness)."@en ;
+    schema:dateCreated "2026-08-11T00:00:00Z"^^xsd:dateTime .
+
+:aiSovereignty a schema:DefinedTerm ;
+    schema:name "AI Sovereignty"@en ;
+    schema:description "National or corporate control over AI capability and infrastructure, a motivation behind open source AI efforts."@en ;
+    owl:sameAs <https://www.wikidata.org/entity/Q140561783> ;
+    skos:related :agenticAI, :aiGovernance ;
+    rdfs:comment "Canonical: Wikidata Q140561783 'Sovereign AI' (verified 2026-08-11, label + description 'policy concept concerning national or regional control of AI'). DBpedia has no self node. Used in why-open-source-matters-for-ai (2026-08-11)."@en ;
+    schema:dateCreated "2026-08-11T00:00:00Z"^^xsd:dateTime .

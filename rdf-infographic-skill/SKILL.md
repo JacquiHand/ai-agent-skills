@@ -69,6 +69,7 @@ When active, every generated artifact set MUST include, unless the user explicit
 12. **Zero-failure delivery gate** — do not deliver until RDF parse, HTML/JS parse, resolver link audit, KG Explorer behavior checklist, nav behavior, dark mode, output path checks, and programmatic KG orphan-node checks all pass.
 13. **SPARQL query presentation** — when the RDF or source content contains `schema:SoftwareSourceCode` SPARQL examples, endpoint demos, or query recipes, render them as readable accordions with resolver-backed query-entity links, fenced/preformatted query text, a visible endpoint/service link, and a correctly URL-encoded live query link when an endpoint is known. Markdown companions must include the same query headings, resolver links, live links, and fenced `sparql` code blocks.
 14. **Open-tab HTML link behavior** — every generated HTML `<a>` whose `href` is not a same-page fragment (`#section`) MUST include `target="_blank" rel="noopener noreferrer"`. This applies to resolver links, companion RDF/Markdown/JSON-LD links, SPARQL links, media/source links, attribution links, DBpedia/Wikidata/W3C links, and footer platform/tool links. Same-page navigation links MUST remain same-tab and MUST NOT carry `target="_blank"`.
+15. **Responsive head-to-head comparison presentation** — when the HTML includes a multi-entity comparison matrix (two or more named products, platforms, systems, harnesses, vendors, or offerings as parallel columns), it MUST dual-present: a semantic comparison **table** for larger screens and **product/entity cards** for phones and narrow viewports. Every comparison aspect MUST be a described entity in the companion TTL, and the **first column of each table body row** (plus matching card row labels) MUST use resolver hyperlinks to those dimension IRIs. See the dedicated section below. Horizontal-scroll-only tables are not a sufficient mobile strategy for multi-column head-to-head matrices.
 
 If an input is insufficient to satisfy the harness contract, ask for the missing source, RDF, resolver, output folder, or artifact scope before generating. If an existing artifact is being repaired, preserve its RDF/HTML/MD pairing and retrofit the missing contract items rather than creating a separate one-off patch.
 
@@ -81,6 +82,7 @@ When choosing among template styles, read `references/template-options.md`. It i
 Reusable assets:
 
 - `scripts/rdf_infographic_harness.py` — optional reference helper functions for resolver URLs, query-type-specific SPARQL live URLs, a KG Explorer shell, footer attribution, and the footer "Explore Knowledge Graph using SPARQL" workbench.
+- `assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html` — **canonical competitive/head-to-head shell**. Includes dual-presentation comparison matrix (table ≥901px, product cards ≤900px), capability panels, timeline, and premium dark aesthetic. Prefer this whenever the source compares two or more named platforms, products, systems, or harnesses.
 - `assets/templates/gartner-da-london-2026-claude-sonnet4-dashboard.html` — optional dashboard-style HTML template reference.
 - `assets/templates/semantic-medallion-editorial-technical.html` — optional editorial/technical HTML template reference for layered architecture and SPARQL-heavy explainers.
 - `scripts/validate-harness-contract.py` — zero-failure gate for the strict harness contract. It validates contract-equivalent features rather than enforcing a single template. Run it before delivery:
@@ -93,6 +95,50 @@ python3 {REPO_ROOT}/rdf-infographic-skill/scripts/validate-harness-contract.py \
 ```
 
 The validator must pass before declaring the artifact complete. If it fails, repair the selected generator/template rather than hand-editing only the published HTML.
+
+#### Responsive Head-to-Head Comparison Presentation (Non-Negotiables)
+
+⛔ **PRE-BUILD CHECK**: When the source or companion RDF supports a multi-entity comparison (competitive analysis, feature matrix, tabulated peer comparison), re-read this entire section before writing the comparison HTML/CSS. Prefer adapting `assets/templates/competitive-analysis-head-to-head-claude_sonnet_4_6.html` rather than inventing a bare table.
+
+**When it applies:** HTML includes a comparison matrix with **two or more** named products, platforms, systems, harnesses, vendors, or offerings as parallel columns (or an equivalent multi-entity scoreboard).
+
+**When it does not apply:** Single-column definition lists, FAQ/glossary/HowTo, KPI chip rows, or pure prose two-column layouts without entity columns.
+
+**Required dual presentation:**
+
+1. **Desktop / large screens (≥901px)** — semantic `<table class="comparison-table">` inside `.comparison-table-view` with an Aspect/Dimension column plus one column per entity. Sticky or strongly contrasted aspect column; per-entity column accent (header underline or cell border).
+2. **Phone / narrow screens (≤900px)** — `.comparison-cards-view` with one `.comp-card` per entity. Each card has a header (resolver-linked entity name + short badge) and body rows (`.comp-row-label` / `.comp-row-value`) covering every dimension present in the table.
+3. **Identical facts** — both views MUST carry the same cell values. Generate both from one data structure at build time.
+4. **CSS-only switch** — use media queries at **900px**; do not depend on JS resize listeners for the default switch. Optional: `data-comparison-layout="responsive"` on the outer wrapper for discovery/validation.
+5. **Resolver parity (entities)** — compared product/platform names are resolver-linked in **both** table headers and card headers (`describe/?url=` by default).
+6. **Aspect/dimension RDF + first-column resolver links (REQUIRED)** — every comparison aspect (first column of each table row) MUST be a first-class **instance** in the companion TTL with `schema:name` and `schema:description`. **Typing those instances:**
+   - Prefer a class from a **shared ontology** when one fits (e.g. `schema:DefinedTerm` as a broad supertype).
+   - Prefer a **corpus-canonical analysis class** when one already exists (e.g. `cdx:ComparisonDimension` registered in `agent-rdf-memory/entities/ontology-terms.ttl`) — **reuse via bound prefix**, do **not** re-mint a document-local `:ComparisonDimension` class.
+   - Only if no shared or corpus class fits: mint a new class under a **distinct** `owl:Ontology` entity in the document (never conflate the document `<>` CreativeWork with the ontology), with `rdfs:isDefinedBy` pointing at that ontology entity, and run the ontology-discovery + cross-reference gates. Register genuinely new reusable classes back into the corpus registry.
+   - Instances remain source-grounded hash IRIs (e.g. `:dimLicense`); the **class** comes from the ontology layer.
+   In HTML, the **first cell of every comparison table body row** MUST be a resolver hyperlink to that **instance** IRI (not plain text). Card `.comp-row-label` texts MUST use the same links.
+7. **Overflow safety** — `min-width:0` on grid/flex participants; `overflow-wrap:anywhere` (and `word-break:break-word` where needed) on cells and card values. Verify no horizontal overflow at ~390px width.
+8. **Dark mode** — colors via CSS variables; `html[data-theme="dark"]` and `@media (prefers-color-scheme: dark)` as **two separate blocks** (never comma-combine a selector with `@media`).
+9. **Viewport gate** — before delivery, prove: table view visible and cards hidden at ≥901px; cards visible and table hidden at ≤900px (e.g. 390×844).
+
+**Canonical markup skeleton:**
+
+```html
+<div class="comparison-wrap" data-comparison-layout="responsive">
+  <div class="comparison-table-view" role="region" aria-label="Comparison matrix for larger screens">
+    <table class="comparison-table">…</table>
+  </div>
+  <div class="comparison-cards-view" role="region" aria-label="Comparison cards for smaller screens">
+    <div class="comparison-cards">
+      <article class="comp-card">…</article>
+    </div>
+  </div>
+</div>
+```
+
+**Fallback authority:** if this skill file is not loaded, apply `agent-rdf-memory/preferences.ttl#step-responsiveComparisonPresentation` and `agent-rdf-memory/howto/responsive-comparison-presentation.ttl`.
+
+**Worked instance:** four-entity coding-agent harness comparison dual layout (table + cards) validated 2026-08-11.
 
 #### KG Explorer Non-Negotiables
 
@@ -392,6 +438,7 @@ Use this checklist to validate generated infographics:
 - [ ] Scroll animations trigger at appropriate points
 - [ ] Hover effects work on all interactive elements
 - [ ] Mobile responsive design functions correctly
+- [ ] If a multi-entity comparison matrix is present: dual presentation (`.comparison-table-view` + `.comparison-cards-view`), CSS switch at 900px, identical facts, resolver-linked entity names in both views, **each first-column aspect label resolver-linked to its TTL ComparisonDimension/DefinedTerm**, no phone-only horizontal-scroll matrix
 - [ ] Lightbox opens/closes smoothly
 
 ### Metadata & SEO
@@ -1195,6 +1242,7 @@ Navigation state persistence **MUST** handle these edge cases:
 - [ ] Every section heading (`h1`–`h4`) throughout the document carries a unique HTML `id` attribute in lowercase kebab-case.
 - [ ] Fragment IDs are stable (derived from heading text slug or entity IRI local name, not from counters or timestamps).
 - [ ] Each fragment ID resolves natively: `<a href="#id">` positions the section correctly without JavaScript dependency.
+- [ ] If a multi-column head-to-head comparison is present: dual markup (`.comparison-table-view` and `.comparison-cards-view`), CSS media switch at 900px, identical facts across views, resolver-linked entity names in table and card headers, **every aspect/dimension described in companion TTL and resolver-linked from the first column of each comparison table row (and matching card row labels)**, overflow-safe cells, viewport check passed (table at ≥901px, cards at ≤900px). Horizontal-scroll-only multi-column matrices FAIL this gate.
 
 ---
 
