@@ -47,6 +47,35 @@ Treat `401 Unauthorized` as an authentication-protocol negotiation point. Inspec
 
 When running interactively, stop at the first `401` and prompt the user: “Authentication is required. Choose Digest, OAuth Bearer/DPoP, WebID-TLS/mTLS, or cancel.” Show the advertised schemes and metadata links, explain the required credential or browser step, and wait for the user's choice before retrying. Never silently fall back between protocols. In non-interactive mode, return the choices as `authentication_schemes` and authentication links and stop without guessing.
 
+### WebID-TLS/mTLS identity selection
+
+Choosing WebID-TLS/mTLS as the protocol picks a TLS *mechanism*, not a
+*certificate*. When more than one local WebID-TLS identity is available
+(e.g. a principal identity and an agent delegate identity), elicit which one
+to present — via `--client-p12`/`--client-cert` — before the first request.
+Do not default to whichever identity was used most recently, and do not
+default to the principal's identity, without asking: "Which WebID-TLS
+identity should I present: your principal WebID, or the agent's own delegate
+WebID?" If the user names an identity explicitly, honor it and keep
+presenting that same identity for every resource in the run — never
+re-elicit or silently switch identities mid-run.
+
+Before the first authenticated request, verify the selected identity: run
+the cert-modulus check for that party only (Steps 1-3 of
+`agent-rdf-memory/howto/verified-identity.ttl` for the principal, Steps 1
+and 4-5 for the agent delegate) — confirm the local PKCS#12/PEM's public key
+modulus matches the `cert:modulus` published in that identity's own
+`profile.ttl`. Treat a mismatch or missing local file as non-fatal: mark the
+identity ⚠️ Unverified, tell the user, and proceed only on their
+confirmation. `verified-identity.ttl`'s full protocol (with reciprocal
+delegation corroboration) is scoped to `whoami` queries and stays optional
+here — only the per-party modulus check is mandatory before a purchase/
+access flow. Gap closed 2026-09-08: this identity-selection step and its
+verification hook did not previously exist in either `ucp-client` or
+`acp-client`, which is how an earlier QA campaign ran under the wrong
+WebID-TLS identity for most of a session despite an explicit instruction to
+use the agent's own identity.
+
 ## RDF offer rules
 
 Prefer Schema.org IRIs (`https://schema.org/`), while accepting the historically equivalent `http://schema.org/` vocabulary in merchant data. A minimal offer should expose:
