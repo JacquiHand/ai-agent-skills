@@ -419,6 +419,19 @@ def sparql_offer_graph(session, endpoint, resource_url, resource_predicates=None
     `default_graph_uris`, automatically retry once with the same WHERE clause
     wrapped in `GRAPH ?g { ... }` to scan across all named graphs before giving
     up to RDF dereference.
+
+    An unbound `GRAPH ?g { ... }` graph-group scan is itself a privileged
+    operation on some quad stores: Virtuoso's Graph-Level Security feature
+    runs a per-candidate-graph visibility check for it, and an anonymous/
+    low-privilege SPARQL user commonly lacks EXECUTE on the internal
+    procedure that check calls -- observed live 2026-09-14 as `Virtuoso 42000
+    Error SR186: SECURITY: No permission to execute procedure ...` (HTTP 400)
+    against linkeddata.uriburner.com, even though the unscoped default-graph
+    query on the same endpoint succeeds outright. This is a server-side
+    authorization outcome, not a malformed query, so it must not be treated
+    as fatal: fall through to RDF dereference exactly as the plain "no rows"
+    case already does, rather than propagating the HTTP error and aborting
+    offer discovery entirely.
     """
     if urlparse(resource_url).scheme not in ("http", "https"):
         raise ValueError("resource URL must be an HTTP(S) IRI")
@@ -437,7 +450,10 @@ def sparql_offer_graph(session, endpoint, resource_url, resource_predicates=None
 
     rows = run(_offer_query(resource_url, resource_predicates, graph_wrap=False))
     if not rows and not default_graph_uris:
-        rows = run(_offer_query(resource_url, resource_predicates, graph_wrap=True))
+        try:
+            rows = run(_offer_query(resource_url, resource_predicates, graph_wrap=True))
+        except requests.exceptions.HTTPError:
+            rows = []
     g = Graph()
     for row in rows:
         offer, item = row.get("offer", {}).get("value"), row.get("item", {}).get("value")
